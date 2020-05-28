@@ -1,10 +1,11 @@
 {
     "compilerOptions": {
-      "module": "system",
+      "module": "ES2015",
+      "moduleResolution": "classic",
       "noImplicitAny": true,
       "removeComments": true,
       "preserveConstEnums": true,
-      "outFile": "./dist/app.js",
+      //"outFile": "./dist/app.js",
       "sourceMap": true,
       "watch": true
     },    
