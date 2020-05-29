@@ -4,6 +4,10 @@ import * as firebase from "firebase/app";
 import "firebase/auth";
 import "firebase/firestore";
 
+import "../css/global.css"
+import "../html/header.html"
+
+
 import { alfa } from "./hola2";
 
 // constante global de la configuracion de firebase
@@ -16,10 +20,10 @@ const firebaseConfig = {
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 
-
 //funcion main autoejecutable
-function main() {
+export function main() {
   let app = new alfa();
+  
 }
-main();
+
 
