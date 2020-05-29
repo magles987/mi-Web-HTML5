@@ -123,3 +123,6 @@ temp/
 
 # ignorar la salida js y map js de los archivos transpilados
 src/js/
+
+# credenciales encriptadas para la suit firebase
+src/ts/_firebase-config.ts
