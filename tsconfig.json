@@ -1,14 +1,25 @@
 {
     "compilerOptions": {
-      "module": "ES2015",
-      "moduleResolution": "classic",
+      "module": "ES6",
+      "target": "ES5",
+      //Siempre que se use paquetes de node_module es 
+      //obligatorio usar este tipo de resolucion
+      "moduleResolution": "Node",
+      //en caso que se quieran usar archivos
+      //javascript que no esten transpilados
+      "allowJs": true,
       "noImplicitAny": true,
       "removeComments": true,
       "preserveConstEnums": true,
-      //"outFile": "./dist/app.js",
+      //se usa un directorio diferente a /dist 
+      //ya que parcel se encarga de la compilacion
+      //js almacenará todos los archivos traanspilados
+      "outDir": "./src/js",
+
       "sourceMap": true,
       "watch": true
-    },    
-    "include": ["src/**/*"],
+    },
+    //solo el directorio ts/ tendrá los archivos typescript    
+    "include": ["src/ts/**/*"],
     "exclude": ["node_modules", "**/*.spec.ts"]
 }

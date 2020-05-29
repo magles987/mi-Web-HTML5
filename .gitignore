@@ -120,3 +120,6 @@ temp/
 .history
 
 # End of https://www.gitignore.io/api/node,visualstudiocode
+
+# ignorar la salida js y map js de los archivos transpilados
+src/js/

@@ -1,2 +1,10 @@
-var c = "cccca";
-// fsafsdfsdfsd
+//████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
+/*class alfa*/
+//
+export class alfa {
+
+    constructor() {
+        console.log("hola alfa-node");
+    }
+
+}
