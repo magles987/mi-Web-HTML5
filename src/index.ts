@@ -6,7 +6,7 @@
 // solo ejecute la funcion main que inicia toda la app (algo 
 // parecido al metodo de entrada de java)
 
-import { main } from "./js/main"
+import { main } from "./ts/main"
 
 main();
 

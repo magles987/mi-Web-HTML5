@@ -11,9 +11,13 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "parcel-bundler": "^1.12.4"
+    "parcel-bundler": "^1.12.4",
+    "posthtml-include": "^1.4.3",
+    "typescript": "^3.9.3"
   },
   "dependencies": {
-    "firebase": "^7.14.5"
+    "firebase": "^7.14.5",
+    "include": "^1.1.0",
+    "posthtml-modules": "^0.6.0"
   }
 }
