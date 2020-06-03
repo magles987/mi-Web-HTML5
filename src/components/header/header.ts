@@ -1,5 +1,5 @@
 import Vue from 'vue'
-import "./header.css";
+import "./header.scss";
 
 export var VComponent = Vue.extend({
     template:require("./header.html"),

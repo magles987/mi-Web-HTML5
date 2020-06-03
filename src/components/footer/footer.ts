@@ -1,5 +1,5 @@
 import Vue from 'vue'
-import "./footer.css";
+import "./footer.scss";
 
 export var VComponent = Vue.extend({
     template:require("./footer.html"),
@@ -11,6 +11,6 @@ export var VComponent = Vue.extend({
 class dataClase {
     campo1:string;
     constructor() {
-        this.campo1 = "este es el pie";    
+        this.campo1 = "este es el pie ";    
     }
 }

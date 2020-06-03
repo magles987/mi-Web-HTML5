@@ -1,5 +1,5 @@
 import Vue from 'vue'
-import "./body1.css";
+import "./body1.scss";
 
 export var VComponent = Vue.extend({
     template:require("./body1.html"),

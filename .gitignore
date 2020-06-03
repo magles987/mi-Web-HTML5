@@ -123,3 +123,7 @@ temp/
 
 # credenciales encriptadas para la suit firebase
 src/ts/_firebase-config.ts
+
+# assets pesados:
+assets/img/
+assets/video/
