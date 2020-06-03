@@ -1,12 +1,37 @@
-//con el fin de organizar el codigo independizando totalmente 
-// los archivos typescript con los de javascript y en vista 
-// que se requiere la ubicacion de este archivo index.js en la 
-// raiz de src/  (esto para poder importar modulos de css y scss) 
-// lo que se hace es que este archivo index.js sea un puente que 
-// solo ejecute la funcion main que inicia toda la app (algo 
-// parecido al metodo de entrada de java)
+// import { Environment } from "./ts/environment";
+// //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
+// //todo lo de firbase inicial
+// //aplicacion principal para firebase
+// import * as firebase from "firebase/app";
+// //cargar aqui las demas herramientas de la suite de firebase
+// import "firebase/auth";
+// import "firebase/firestore";
 
-import { main } from "./ts/main"
+// // Initialize Firebase
+// firebase.initializeApp(new Environment().firebaseConfig.init_config);
+//================================================================================================================================
 
+//████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
+//importaciones de estilos globales:
+//import "../css/global.css"
+
+//████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
+//Funcion main de entrada
+
+import Vue from 'vue'
+//import App from './App'
+
+import { h } from "./components/header/header";
+
+function main() {
+
+    new Vue({
+    
+        el: '#app',
+        components: { 
+            "cabeza" : h,
+        }
+      })
+}
 main();
 
