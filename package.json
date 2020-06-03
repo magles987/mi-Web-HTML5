@@ -22,6 +22,7 @@
     "firebase": "^7.14.5",
     "include": "^1.1.0",
     "posthtml-modules": "^0.6.0",
-    "vue": "^2.6.11"
+    "vue": "^2.6.11",
+    "vue-router": "^3.3.2"
   }
 }

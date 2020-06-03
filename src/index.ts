@@ -20,18 +20,40 @@
 
 import Vue from 'vue'
 //import App from './App'
+import { Router } from "./ts/router"; 
 
-import { h } from "./components/header/header";
+//import Router from "vue-router";
+// import VueRouter from 'vue-router'
+
+// Vue.use(VueRouter);
+
+// export const RootRouter = new VueRouter({
+//     //mode : "history",
+//     // base : process.env.BASE_URL,
+//     routes:[
+//         {
+//             path:"/",
+//             // name:"cabeza",
+//             component : ()=> <any>import('./components/header/header').then(ts_Comp=>ts_Comp.h),
+//             // components : {
+//             //     "cabeza" : ()=> <any>import('./components/header/header').then(ts_Comp=>ts_Comp.h),
+//             // }
+//         }
+//     ]
+// });
 
 function main() {
 
     new Vue({
     
-        el: '#app',
+        // el: '#app',
+        router : Router,
         components: { 
-            "cabeza" : h,
+            "cabeza" : ()=> <any>import('./components/header/header').then(ts_Comp=>ts_Comp.VComponent),
+            "pie" : ()=> <any>import('./components/footer/footer').then(ts_Comp=>ts_Comp.VComponent),
         }
-      })
+      }).$mount("#app"); //con $mount puedo evitar tener que determinar dentro de la construsccion inicial a que elemento quiero cargar este trozo de vuejs
+
 }
 main();
 

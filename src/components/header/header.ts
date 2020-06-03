@@ -1,7 +1,7 @@
 import Vue from 'vue'
 import "./header.css";
 
-export var h = Vue.extend({
+export var VComponent = Vue.extend({
     template:require("./header.html"),
     data : function() {
         return new dataClase()
