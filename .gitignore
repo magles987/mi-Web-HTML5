@@ -122,7 +122,7 @@ temp/
 # End of https://www.gitignore.io/api/node,visualstudiocode
 
 # credenciales encriptadas para la suit firebase
-src/ts/_firebase-config.ts
+src/ts/_firebase-key-config.ts
 
 # assets pesados:
 assets/img/
