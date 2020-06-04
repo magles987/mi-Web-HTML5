@@ -22,8 +22,11 @@
     "typescript": "^3.9.3"
   },
   "dependencies": {
+    "@types/jquery": "^3.3.38",
+    "bootstrap": "^4.5.0",
     "firebase": "^7.14.5",
     "include": "^1.1.0",
+    "jquery": "^3.5.1",
     "posthtml-modules": "^0.6.0",
     "vue": "^2.6.11",
     "vue-router": "^3.3.2"

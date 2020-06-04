@@ -6,7 +6,7 @@ import { Router } from "./ts/router";
 //import App from './App'
 
 //configuracion y puesta en marcha de firebase
-import { fb_app } from "./ts/firebase-config";
+import { Fb_app } from "./ts/firebase-config";
 
 //
 

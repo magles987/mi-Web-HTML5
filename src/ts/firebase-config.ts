@@ -27,5 +27,28 @@ var fbConfig_prod:IfbConfig = {
 var fbConfig = (true) ? fbConfig_dev : fbConfig_prod;
 
 // Initialize Firebase
-export var fb_app = firebase.initializeApp(fbConfig.keyConfig);
-//================================================================================================================================
+var fb_app = firebase.initializeApp(fbConfig.keyConfig);
+//████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
+/*class */
+//
+export class  Fb_app{
+
+
+    constructor() {}
+
+
+    /*getFirestore()*/
+    //devuelve la instancia de firestore
+    public static firestore():firebase.firestore.Firestore{
+        return fb_app.firestore();
+    }
+
+    /*firestoreReady()*/
+    //devuelve la promesa de cuando estará listo firestore
+    public static firestoreReady():Promise<void>{
+        return fb_app.firestore().enablePersistence();
+    }
+
+}
+
+

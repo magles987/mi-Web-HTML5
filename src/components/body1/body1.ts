@@ -1,7 +1,7 @@
 import Vue from 'vue'
 import "./body1.scss";
 
-import { fb_app } from "../../ts/firebase-config";
+import { Fb_app } from "../../ts/firebase-config";
 
 export var VComponent = Vue.extend({
     template:require("./body1.html"),
@@ -19,9 +19,9 @@ class dataClase {
         }, 10000);
     
         let data:any;
-        fb_app.firestore().enablePersistence()
+        Fb_app.firestoreReady()
         .then(() => {
-            return fb_app.firestore()
+            return Fb_app.firestore()
             .collection('Productos')
             .orderBy('_id', 'asc')
             .limit(50)
@@ -30,11 +30,10 @@ class dataClase {
         })
         .then((d) => {
             return d.forEach((doc) => {
-                console.log(doc);
+                console.log(doc.data());
             });
         });
 
-        console.log("datos" + data);
 
     }
 }
