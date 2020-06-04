@@ -1,0 +1,7 @@
+@import "../../scss/goblal";
+
+footer {
+    color : $colorLetraGlobal;
+    @include rotarTransform(rotate(2deg), 13.5em);
+}
+

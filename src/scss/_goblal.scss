@@ -1,0 +1,19 @@
+//Los archivos con prefijo _ de scss pueden ser importados
+//y contener variables y funciones y clases comunes a 
+//aplicar en cualquier otro scss
+$colorLetraGlobal : rgba(65, 18, 236, 0.589);
+
+//los mixin son como funciones a las cuales se le pueden asignar argumentos
+//los cuales seran usados como variables (es recomendable asignar estos 
+//argumentos cn valores  :predefinidos   ya que si no se hace asi y si en el 
+//llamado se olvida asignar un parametro a la funcion esta desata un error)
+@mixin rotarTransform($Grados: rotate(5deg), $ancho:300px) {
+    -webkit-transform: $Grados;
+    -ms-transform: $Grados;
+    transform: $Grados;
+
+    background-color: rgba(23, 206, 54, 0.548);
+
+    width: $ancho;
+}
+
