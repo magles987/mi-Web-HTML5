@@ -28,6 +28,7 @@
     "include": "^1.1.0",
     "jquery": "^3.5.1",
     "posthtml-modules": "^0.6.0",
+    "uuid": "^8.1.0",
     "vue": "^2.6.11",
     "vue-router": "^3.3.2"
   }
