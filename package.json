@@ -19,10 +19,10 @@
     "postcss-modules": "^2.0.0",
     "posthtml-include": "^1.4.3",
     "sass": "^1.26.7",
-    "typescript": "^3.9.3"
+    "typescript": "^3.9.3",
+    "@types/jquery": "^3.3.38"
   },
   "dependencies": {
-    "@types/jquery": "^3.3.38",
     "bootstrap": "^4.5.0",
     "firebase": "^7.14.5",
     "include": "^1.1.0",
