@@ -1,10 +1,12 @@
 import { Fb_app } from "../../../ts/firebase-config";
 import { Fb_Controller } from "../fb-controller";
 
+import { Producto } from "../../models/producto/producto-m";
+
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
 /*class ProductoController extends Fb_Controller*/
 //
-export class ProductoController extends Fb_Controller{
+export class ProductoController extends Fb_Controller<Producto>{
 
     private nomCollection = "Productos";
 
@@ -59,6 +61,34 @@ export class ProductoController extends Fb_Controller{
         return this.create(newDoc, this.nomCollection, _pathBase)
         .then(() => {
             //aqui se puede usar un hook post-crear 
+            return;
+        });
+    }
+
+    /*update()*/
+    //
+    //Parametros:
+    //
+    public updateDoc(updatedDoc:any, _pathBase?:string){
+        //aqui se puede usar un hook pre-editar
+        updatedDoc = updatedDoc;
+
+        return this.update(updatedDoc, this.nomCollection, _pathBase)
+        .then(() => {
+            //aqui se puede usar un hook post-actualizar
+            return;
+        });
+    }
+
+    /*deleteDoc()*/
+    //
+    //Parametros:
+    //
+    public deleteDoc(_id:string, _pathBase?:string){
+        //aqui se puede usar un hook pre-eliminar
+        return this.delete(_id, this.nomCollection, _pathBase)
+        .then(() => {
+            //aqui se puede usar un hook post-eliminar
             return;
         });
     }

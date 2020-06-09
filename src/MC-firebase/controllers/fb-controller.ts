@@ -1,11 +1,12 @@
 import * as firebase from "firebase/app";
 import { Fb_app } from "../../ts/firebase-config";
+
 import { UtilesControllers } from "./_Utiles";
 
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
 /*class Fb_Controller*/
 //
-export abstract class Fb_Controller {
+export abstract class Fb_Controller<TModel> {
 
     protected UtilCtrl:UtilesControllers;
 
@@ -22,9 +23,9 @@ export abstract class Fb_Controller {
         .then(()=>{
             return cursorQuery.get()
             .then((docsData) => {
-                let docs = [];
+                let docs:TModel[] = [];
                 docsData.forEach((docD) => {                
-                    const d = docD.data();
+                    const d = docD.data() as TModel;
                     docs.push(d);
                 });
                 return docs;
@@ -43,7 +44,7 @@ export abstract class Fb_Controller {
         .then(() => {
             return  cursorRef_id.get()
             .then((docData) => {
-                let doc = docData.data();
+                let doc = docData.data() as TModel;
                 return doc;
             });
         });
@@ -54,7 +55,7 @@ export abstract class Fb_Controller {
     //
     //Parametros:
     //
-    protected create(newDoc:any, nomCollection:string, _pathBase=""){
+    protected create(newDoc:TModel, nomCollection:string, _pathBase=""){
         
         newDoc["_id"] = this.UtilCtrl.createIds();
         newDoc["_pathDoc"] = (_pathBase === "") ?
@@ -78,7 +79,7 @@ export abstract class Fb_Controller {
     //
     //Parametros:
     //
-    protected update(updatedDoc:any, nomCollection:string, _pathBase=""){
+    protected update(updatedDoc:TModel, nomCollection:string, _pathBase=""){
         
         let collectionPath = (_pathBase === "") ?
                             `${nomCollection}` :
@@ -93,6 +94,23 @@ export abstract class Fb_Controller {
         })
     }
 
+    /*delete()*/
+    //
+    //Parametros:
+    //
+    public delete(_id:string, nomCollection:string, _pathBase=""){
 
+        let collectionPath = (_pathBase === "") ?
+                            `${nomCollection}` :
+                            `${_pathBase}/${nomCollection}`
+
+        return Fb_app.firestoreReady()
+            .then(() => {
+                return Fb_app.firestore()
+                    .collection(collectionPath)
+                    .doc(_id)
+                    .delete();
+            })
+    }
 
 }

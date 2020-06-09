@@ -26,5 +26,19 @@ export interface IMapA_misc<TExtend>{
     color?:TExtend;
 }
 
-//████████████████████████████████████████████████████████████████
-//clase referencial
+//████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
+/*class Producto implements IProducto<any>*/
+//
+export class Producto implements IProducto<any> {
+
+    _id:string;
+    _pathDoc:string;
+    nombre:string;
+    categoria:string;
+    precio:number;
+
+    emb_SubColeccion:any;
+
+    v_precioImpuesto?:number;
+
+}
