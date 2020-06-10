@@ -33,10 +33,12 @@ var fb_app = firebase.initializeApp(fbConfig.keyConfig);
 //
 export class  Fb_app{
 
-
-    constructor() {}
-
-
+    /*getApp()*/
+    //devuelve la firebase app activa
+    public static getApp(){
+        return fb_app;;
+    }
+    
     /*getFirestore()*/
     //devuelve la instancia de firestore
     public static firestore():firebase.firestore.Firestore{
