@@ -1,0 +1,25 @@
+
+<div class="login-form" id="login-form-">
+
+    <div v-if="$data.currentUser == undefined || $data.currentUser == null">
+        <h4>Logueate:</h4>
+        <form action="">
+            <label for="email">Email:</label>
+            <input type="email" name="email" v-model="login_email" placeholder="email@email.com">
+            <span></span>
+            <label for="password">Email:</label>
+            <input type="password" name="password"  v-model="login_password" >
+            <span></span>
+            
+            <button type="button" v-on:click="$data.loguearse()">Login</button>
+            
+        </form>
+    </div>
+    <div v-else>
+        <h4>{{$data.currentUser.email}}</h4>
+        <button type="button" v-on:click="$data.desloguearse()">Logout</button>
+    </div>
+
+
+
+</div>

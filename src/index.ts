@@ -24,6 +24,7 @@ function main() {
         router : Router,
         components: { 
             "cabeza" : ()=> <any>import('./components/header/header').then(ts_Comp=>ts_Comp.VComponent),
+            "login-form" : ()=> <any>import('./components/login-form/login-form').then(ts_Comp=>ts_Comp.VComponent),
             "pie" : ()=> <any>import('./components/footer/footer').then(ts_Comp=>ts_Comp.VComponent),
         }
       }).$mount("#app"); //con $mount puedo evitar tener que determinar dentro de la construsccion inicial a que elemento quiero cargar este trozo de vuejs

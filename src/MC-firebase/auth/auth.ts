@@ -44,10 +44,11 @@ export class Fb_Auth {
     /*getAuth()*/
     //obtener una unica instancia (Singleton)
     public static getAuth():Fb_Auth{
-        return (Fb_Auth.Auth)? Fb_Auth.Auth : new Fb_Auth();
+        const instance = (Fb_Auth.Auth)? Fb_Auth.Auth : new Fb_Auth();
+        Fb_Auth.Auth = instance;
+        return instance;
     }
     
-
     /*AuthStateChanged()*/
     //detecta automaticamente si el usuario a cambiado
     private AuthStateChanged():void{

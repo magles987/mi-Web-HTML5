@@ -6,25 +6,35 @@ import { Fb_Auth } from '../../MC-firebase/auth/auth';
 export var VComponent = Vue.extend({
     template:require("./body1.html"),
     data : function() {
-        return new dataClase()
+        return new Class_component()
     }
 })
 
-class dataClase {
+class Class_component {
     campo1:string;
     campo2:string;
 
     constructor() {
         this.campo1 = "Body1";
-
+        // let auth = Fb_Auth.getAuth();
         
-        setTimeout(() => {
-            let auth = new Fb_Auth();
-            auth.signIn("local", "PopUp", "andres@andres.com", "987000")
-            .then((user) => {
-                this.campo1 = user.displayName;
-            })            
-        }, 10000);
+        // setTimeout(() => {
+            
+        //     if (auth.currentUser && auth.currentUser != null) {
+        //         this.campo1 = auth.currentUser.email;
+        //         auth.signOut()
+        //         .then(() => {
+        //             this.campo1 = (auth.currentUser)? auth.currentUser.email : "";
+        //         });
+        //     } else {
+        //         auth.signIn("local", "PopUp", "andres@andres.com", "987CCC")
+        //         .then((user) => {
+        //             this.campo1 = user.email;
+        //         })                     
+        //     }
+
+       
+        // }, 10000);
     }
 
     /*clickeando()*/
