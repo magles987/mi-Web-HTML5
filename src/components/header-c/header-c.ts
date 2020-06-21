@@ -8,12 +8,12 @@ import jquery from "jquery";
 
 //================================================================
 // importaciones de HTML y CSS (el HTML se debe importar con require)
-import "./header.scss";
-var html_template = require("./header.html");
+import "./header-c.scss";
+var html_template = require("./header-c.html");
 //nombre referencial en estilo  KebabCase  para nombrar al componente
 //asi tambien se debe llamar los archivos referentes a este componente 
 //y su representacion en HTML y CSS
-var tag_component = "header";
+var tag_component = "header-c";
 
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
 /*class PropsForComponent*/

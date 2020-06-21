@@ -4,18 +4,16 @@ import { CombinedVueInstance } from 'vue/types/vue';
 import { Component } from '../shared/ts/component';
 import { Util_Components } from "../shared/ts/util-comp";
 
-import { Fb_Auth } from '../../MC-firebase/auth/auth';
-
 import jquery from "jquery";
 
 //================================================================
 // importaciones de HTML y CSS (el HTML se debe importar con require)
-import "./body1.scss";
-var html_template = require("./body1.html");
+import "./footer-c.scss";
+var html_template = require("./footer-c.html");
 //nombre referencial en estilo  KebabCase  para nombrar al componente
 //asi tambien se debe llamar los archivos referentes a este componente 
 //y su representacion en HTML y CSS
-var tag_component = "body1";
+var tag_component = "footer-c";
 
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
 /*class PropsForComponent*/
@@ -29,7 +27,7 @@ class PropsForComponent {
 }
 
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
-export class Body1Component extends Component<PropsForComponent>{
+export class FooterComponent extends Component<PropsForComponent>{
 
     public campo1:string;
 
@@ -42,23 +40,21 @@ export class Body1Component extends Component<PropsForComponent>{
 
         //asignar "inyectar" el objeto prop recibido de la instancia del vueComponent
         this.isInjectPropsClonated = false; //determina si se desea que el objeto se clone
-        this.inject_props = this.that_Vue.$props[Body1Component.nomProps] || new PropsForComponent();
+        this.inject_props = this.that_Vue.$props[FooterComponent.nomProps] || new PropsForComponent();
 
         //---test-----
-        this.campo1 = "Body1";   
+        this.campo1 = "este es el pie ";   
         //----------
     }
 
     //================================================================
-    public clickeando():void{
-        console.log("clickeando");
-    }    
+
 
     //================================================================
     //estaticos de metadata para ser usado en otros componentes 
     //(mas usados en componente padre de este componente)
     public static tag_component = tag_component;
-    public static nomProps = new Util_Components().convertStringToDiffCase(Body1Component.tag_component, "Camel");
+    public static nomProps = new Util_Components().convertStringToDiffCase(FooterComponent.tag_component, "Camel");
     public static getPropsForComponent = ()=> new PropsForComponent();
     
     /*getVueComponent()*/
@@ -67,7 +63,7 @@ export class Body1Component extends Component<PropsForComponent>{
     public static getVueComponent(isSingleton=false){
 
         //contenedor si de piensa usar de forma singleton
-        let stg_data_comp:Body1Component;
+        let stg_data_comp:FooterComponent;
 
         return Vue.extend({
             //cargar plantilla html
@@ -76,15 +72,15 @@ export class Body1Component extends Component<PropsForComponent>{
             //cargar la instancia que controlará al componente
             data : function() {
                 
-                let data_comp:Body1Component;
+                let data_comp:FooterComponent;
                 //determinar la forma de instanciacion de data
                 if (isSingleton == false) {
                     //cada elemento componente tendra su propia instancia data
-                    data_comp = new Body1Component(this); 
+                    data_comp = new FooterComponent(this); 
                 } else {
                     //cada elemento componente tendra la misma instancia data
                     if (!stg_data_comp || stg_data_comp == null) {
-                        stg_data_comp = new Body1Component(this);
+                        stg_data_comp = new FooterComponent(this);
                     }
                     data_comp = stg_data_comp;
                 }
@@ -94,7 +90,7 @@ export class Body1Component extends Component<PropsForComponent>{
             //declarar el nombre de la propiedad que recibe el objeto props
             //no permite el tipado a Component:propComponent por eso se 
             //usa solo en nombre de la propiedad
-            props:[Body1Component.nomProps],
+            props:[FooterComponent.nomProps],
             
             //algunos hooks pertenecientes al ciclo 
             //de vida del componente (IMPORTANTE: no estan todos)
@@ -108,30 +104,30 @@ export class Body1Component extends Component<PropsForComponent>{
             //cuando se a creado en memoria el componente
             created : function() {
                 const that = <CombinedVueInstance <Vue, unknown, unknown, unknown, Readonly<Record<string, any>>>><unknown>this;
-                const context_data = <Body1Component>that.$data;
+                const context_data = <FooterComponent>that.$data;
                 return;
             },
             //cuando se a montado el HTML y CSS del componente
             mounted : function(){
                 const that = <CombinedVueInstance <Vue, unknown, unknown, unknown, Readonly<Record<string, any>>>><unknown>this;
-                const context_data = <Body1Component>that.$data;
+                const context_data = <FooterComponent>that.$data;
                 
                 //configurar el elemento root del componente
-                context_data.configHTMLRootElemnt(<HTMLElement>that.$el, Body1Component.tag_component);
+                context_data.configHTMLRootElemnt(<HTMLElement>that.$el, FooterComponent.tag_component);
                 
                 return;
             },
             //actualizacion ??? del componente
             updated : function() {
                 const that = <CombinedVueInstance <Vue, unknown, unknown, unknown, Readonly<Record<string, any>>>><unknown>this;
-                const context_data = <Body1Component>that.$data;
+                const context_data = <FooterComponent>that.$data;
                 return;
             },
             //cuando el componente deja de existir, 
             //tanto en HTML como en memoria            
             destroyed : function() {
                 const that = <CombinedVueInstance <Vue, unknown, unknown, unknown, Readonly<Record<string, any>>>><unknown>this;
-                const context_data = <Body1Component>that.$data;
+                const context_data = <FooterComponent>that.$data;
                 return;
             },
 
@@ -143,5 +139,3 @@ export class Body1Component extends Component<PropsForComponent>{
         });    
     }
 }
-
-
