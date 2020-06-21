@@ -8,11 +8,12 @@
 <body>
     <div class="body-app" id="app">
         <h2>Vue Funcionando</h2>
-        <cabeza></cabeza>
-        <login-form></login-form>
+        
+        <header-c></header-c>
+        <login-form v-bind:login-form="{prop1:'hola login'}"></login-form>
         <login-form></login-form>
         <router-view></router-view>
-        <pie></pie>
+        <footer-c></footer-c>
     </div>
     <script src="./index.ts"></script>
 </body>

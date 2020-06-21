@@ -9,7 +9,7 @@ export const Router = new VueRouter({
     routes:[
         {
             path:"/",
-            component : ()=> <any>import('../components/body1/body1').then(ts_Comp=>ts_Comp.VComponent)
+            component : ()=> <any>import('../components/body1/body1').then(ts_Comp=>ts_Comp.Body1Component.getVueComponent())
         }
     ]
 });

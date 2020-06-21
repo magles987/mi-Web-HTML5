@@ -20,14 +20,16 @@ function main() {
 
     new Vue({
     
-        // el: '#app',
+        el: '#app',
         router : Router,
         components: { 
-            "cabeza" : ()=> <any>import('./components/header/header').then(ts_Comp=>ts_Comp.VComponent),
-            "login-form" : ()=> <any>import('./components/login-form/login-form').then(ts_Comp=>ts_Comp.VComponent),
-            "pie" : ()=> <any>import('./components/footer/footer').then(ts_Comp=>ts_Comp.VComponent),
+            //los componentes que su tag sea igual al de un tag oficial de html 
+            //es necesario colocarles un sufijo -c y lo mismo en la plantilla
+            "header-c" : ()=> <any>import('./components/header/header').then(ts_Comp=>ts_Comp.HeaderComponent.getVueComponent()),
+            "login-form" : ()=> <any>import('./components/login-form/login-form').then(ts_Comp=>ts_Comp.LoginFormComponent.getVueComponent()),
+            "footer-c" : ()=> <any>import('./components/footer/footer').then(ts_Comp=>ts_Comp.FooterComponent.getVueComponent()),
         }
-      }).$mount("#app"); //con $mount puedo evitar tener que determinar dentro de la construsccion inicial a que elemento quiero cargar este trozo de vuejs
+      })
 
 }
 main();
