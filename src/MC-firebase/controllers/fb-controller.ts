@@ -37,7 +37,7 @@ export abstract class Fb_Controller<TModel,TIModel, TModelMeta> {
         //extraer part de modelo meta en *frio*
         const mMeta = <ModelMetadata><unknown>this.modelMeta_Offline;
         
-        let fn = Fb_app.fnHttpsCallable(mMeta.__nameFnCloudMeta);
+        let fn = Fb_app.fnHttpsCallable(mMeta.__nameFnCloudMeta,);
         
         return fn().then((resultMeta) => {
             

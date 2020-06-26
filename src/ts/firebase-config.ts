@@ -5,6 +5,7 @@ import * as firebase from "firebase/app";
 //cargar aqui las demas herramientas de la suite de firebase
 import "firebase/auth";
 import "firebase/firestore";
+import "firebase/functions";
 
 import { fbKeyConfig_dev, fbKeyConfig_prod } from "./_firebase-key-config";
 
@@ -30,6 +31,7 @@ var fbConfig = (true) ? fbConfig_dev : fbConfig_prod;
 var fb_app = firebase.initializeApp(fbConfig.keyConfig);
 
 // Initialize cloud functions
+firebase.functions().useFunctionsEmulator("http://localhost:5001");
 var fb_cloudFn = firebase.functions();
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
 /*class */
@@ -60,17 +62,25 @@ export class  Fb_app{
         return fb_app.auth();
     }
     
+    //determinar si se quiere probrar las cloud 
+    //Functions de manera local
+    private static isCloudFnEmulatorLocal=true;
+    private static Fnlocalhost = "http://localhost:5001";
+
     /*cloudFunctions()*/
     //devuelve el objeto configurado para usar cloud functions
     public static cloudFn(){
-        return fb_cloudFn;
+        return fb_cloudFn
+        // return (Fb_app.isCloudFnEmulatorLocal) ? 
+        //         fb_cloudFn.useFunctionsEmulator(Fb_app.Fnlocalhost) : 
+        //         fb_cloudFn;
     }
 
     /*fnHttpsCallable()*/
     //reescritura del metodo httpsCallable() de firebase para 
     //poder minimizar los llamados a metodos un una misma linea de codigo
     public static fnHttpsCallable(name:string, options?:firebase.functions.HttpsCallableOptions){
-        return fb_cloudFn.httpsCallable(name, options);
+        return Fb_app.cloudFn().httpsCallable(name, options);
     }
     
 

@@ -1,5 +1,5 @@
 import { IProducto } from "../../models/producto/producto-m";
-import { ModelMetadata, IMetaCampo, IMetaColeccion } from "../meta";
+import { ModelMetadata, IMetaCampo } from "../meta";
 
 
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
@@ -9,7 +9,7 @@ export class ProductoMeta extends ModelMetadata implements IProducto<any>{
     
     __nomColeccion = "Producto";
     __isEmbSubcoleccion = false;
-    __nameFnCloudMeta = "";
+    __nameFnCloudMeta = "FnProductoMeta";
     
     _id:IMetaCampo<string, any> = {
         nom:"_id",

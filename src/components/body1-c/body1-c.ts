@@ -4,13 +4,12 @@ import { CombinedVueInstance } from 'vue/types/vue';
 import { Component } from '../shared/ts/component';
 import { Util_Components } from "../shared/ts/util-comp";
 
-import { Fb_Auth } from '../../MC-firebase/auth/auth';
-
 import jquery from "jquery";
 
 //================================================================
 // importaciones de HTML y CSS (el HTML se debe importar con require)
 import "./body1-c.scss";
+import { ProductoController } from '../../MC-firebase/controllers/producto/producto-ctrl';
 var html_template = require("./body1-c.html");
 //nombre referencial en estilo  KebabCase  para nombrar al componente
 //asi tambien se debe llamar los archivos referentes a este componente 
@@ -46,6 +45,8 @@ export class Body1Component extends Component<PropsForComponent>{
 
         //---test-----
         this.campo1 = "Body1";   
+
+        let p_metaa = new ProductoController();
         //----------
     }
 
