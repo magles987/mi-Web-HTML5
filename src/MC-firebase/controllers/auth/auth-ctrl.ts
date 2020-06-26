@@ -1,5 +1,5 @@
 import * as firebase from "firebase/app";
-import { Fb_app } from "../../ts/firebase-config";
+import { Fb_app } from "../../../ts/firebase-config";
 
 //cargar la api de auth de Firebase
 import "firebase/auth";
@@ -7,13 +7,13 @@ import "firebase/auth";
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
 /*class Auth*/
 //
-export class Fb_Auth {
+export class Fb_AuthController {
 
     //instancia de la app usada
-    private fb_app:firebase.app.App;
+    private auth:firebase.auth.Auth;
 
     //contenedor instancia Singleton
-    private  static Auth:Fb_Auth;
+    private  static AuthCtrl:Fb_AuthController;
 
     private UserCredential:firebase.auth.UserCredential;
     public currentUser:firebase.User;
@@ -26,12 +26,12 @@ export class Fb_Auth {
         
         //obtener la instancia de la app de firebase
         //que se esta usando
-        this.fb_app = Fb_app.getApp();
+        this.auth = Fb_app.fb_auth();
 
         //configurar los proveedores de autenticacion 
         //(google, facebook, twitter) para que muestren
         // una Interfaz en español
-        this.fb_app.auth().languageCode = 'es';
+        this.auth.languageCode = 'es';
 
         this.configAuthWithGoogle();
         this.configAuthWithFacebook();
@@ -43,16 +43,16 @@ export class Fb_Auth {
 
     /*getAuth()*/
     //obtener una unica instancia (Singleton)
-    public static getAuth():Fb_Auth{
-        const instance = (Fb_Auth.Auth)? Fb_Auth.Auth : new Fb_Auth();
-        Fb_Auth.Auth = instance;
+    public static getAuth():Fb_AuthController{
+        const instance = (Fb_AuthController.AuthCtrl)? Fb_AuthController.AuthCtrl : new Fb_AuthController();
+        Fb_AuthController.AuthCtrl = instance;
         return instance;
     }
     
     /*AuthStateChanged()*/
     //detecta automaticamente si el usuario a cambiado
     private AuthStateChanged():void{
-        this.fb_app.auth().onAuthStateChanged((cUser) => {
+        this.auth.onAuthStateChanged((cUser) => {
             this.currentUser = (cUser)? cUser : null;
             return;
         })
@@ -64,7 +64,7 @@ export class Fb_Auth {
     //Parametros:
     //
     public createAuthWithEmail(email:string, password:string){     
-        return this.fb_app.auth().createUserWithEmailAndPassword(email, password)
+        return this.auth.createUserWithEmailAndPassword(email, password)
             .then((credentials) => {
                 this.UserCredential = credentials;
                 return credentials.user;
@@ -87,7 +87,7 @@ export class Fb_Auth {
         
         // si es local tiene un tratamiento especial
         if (nomProvider == "local") {
-            return this.fb_app.auth().signInWithEmailAndPassword(email, password)
+            return this.auth.signInWithEmailAndPassword(email, password)
             .then((credentials) => {
                 this.UserCredential = credentials;
                 this.currentUser = credentials.user;
@@ -99,7 +99,7 @@ export class Fb_Auth {
 
         //tipo de despliegue de formulario
         if (type == "PopUp") {
-            return this.fb_app.auth().signInWithPopup(provider)
+            return this.auth.signInWithPopup(provider)
             .then((credentials) => {
                 this.UserCredential = credentials;
                 this.currentUser = credentials.user;
@@ -108,9 +108,9 @@ export class Fb_Auth {
         }
         
         if (type == "Redirect") {
-            return  this.fb_app.auth().signInWithRedirect(provider)
+            return  this.auth.signInWithRedirect(provider)
             .then(() => {
-                return this.fb_app.auth().getRedirectResult();
+                return this.auth.getRedirectResult();
             })            
             .then((credentials) => {
                 this.UserCredential = credentials;
@@ -124,7 +124,7 @@ export class Fb_Auth {
     /*signOut()*/
     //desloguearse de cualquier proovedor
     public signOut(){
-        return this.fb_app.auth().signOut()
+        return this.auth.signOut()
         .then(() => {
             this.currentUser = null;
             this.UserCredential = null;
