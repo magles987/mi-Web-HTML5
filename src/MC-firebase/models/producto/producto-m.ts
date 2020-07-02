@@ -31,14 +31,14 @@ export interface IMapA_misc<TExtend>{
 //
 export class Producto implements IProducto<any> {
 
-    _id:string;
-    _pathDoc:string;
-    nombre:string;
-    categoria:string;
-    precio:number;
+    _id:string = "";
+    _pathDoc:string = "";
+    nombre:string = "";
+    categoria:string = "";
+    precio:number = 0;
 
-    emb_SubColeccion:any;
+    emb_SubColeccion:any = null;
 
-    v_precioImpuesto?:number;
+    v_precioImpuesto?:number = 0;
 
 }

@@ -4,14 +4,21 @@ import { CombinedVueInstance } from 'vue/types/vue';
 import { Component } from '../shared/ts/component';
 import { Util_Components } from "../shared/ts/util-comp";
 
+<<<<<<< HEAD
 import { ProductoController } from '../../MC-firebase/controllers/producto/producto-ctrl';
 
+=======
+>>>>>>> 05e6d3fe50914f87dd7f29e123daa3b015a848cf
 import jquery from "jquery";
 
 //================================================================
 // importaciones de HTML y CSS (el HTML se debe importar con require)
 import "./body1-c.scss";
+<<<<<<< HEAD
 
+=======
+import { ProductoController } from '../../MC-firebase/controllers/producto/producto-ctrl';
+>>>>>>> 05e6d3fe50914f87dd7f29e123daa3b015a848cf
 var html_template = require("./body1-c.html");
 //nombre referencial en estilo  KebabCase  para nombrar al componente
 //asi tambien se debe llamar los archivos referentes a este componente 
@@ -46,12 +53,18 @@ export class Body1Component extends Component<PropsForComponent>{
         this.inject_props = this.that_Vue.$props[Body1Component.nomProps] || new PropsForComponent();
 
         //---test-----
+<<<<<<< HEAD
         this.campo1 = "Body1";
         let pc = new ProductoController();
         pc.getAllDocs()
         .then((docs) => {
             console.log(docs);
         })
+=======
+        this.campo1 = "Body1";   
+
+        let p_metaa = new ProductoController();
+>>>>>>> 05e6d3fe50914f87dd7f29e123daa3b015a848cf
         //----------
     }
 
