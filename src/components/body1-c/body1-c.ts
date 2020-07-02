@@ -4,13 +4,14 @@ import { CombinedVueInstance } from 'vue/types/vue';
 import { Component } from '../shared/ts/component';
 import { Util_Components } from "../shared/ts/util-comp";
 
-import { Fb_Auth } from '../../MC-firebase/auth/auth';
+import { ProductoController } from '../../MC-firebase/controllers/producto/producto-ctrl';
 
 import jquery from "jquery";
 
 //================================================================
 // importaciones de HTML y CSS (el HTML se debe importar con require)
 import "./body1-c.scss";
+
 var html_template = require("./body1-c.html");
 //nombre referencial en estilo  KebabCase  para nombrar al componente
 //asi tambien se debe llamar los archivos referentes a este componente 
@@ -45,7 +46,12 @@ export class Body1Component extends Component<PropsForComponent>{
         this.inject_props = this.that_Vue.$props[Body1Component.nomProps] || new PropsForComponent();
 
         //---test-----
-        this.campo1 = "Body1";   
+        this.campo1 = "Body1";
+        let pc = new ProductoController();
+        pc.getAllDocs()
+        .then((docs) => {
+            console.log(docs);
+        })
         //----------
     }
 

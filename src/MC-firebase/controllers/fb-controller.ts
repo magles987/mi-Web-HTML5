@@ -1,5 +1,6 @@
 import * as firebase from "firebase/app";
-import { Fb_app } from "../../ts/firebase-config";
+import { FirebaseConfig } from "../../ts/firebase-config";
+import * as Axios from "axios";
 
 import { UtilControllers } from "./_Util-ctrl";
 import { ModelMetadata } from "./meta";
@@ -9,6 +10,8 @@ import { ModelMetadata } from "./meta";
 //
 export abstract class Fb_Controller<TModel,TIModel, TModelMeta> {
 
+    //representala suite de apis de firebase
+    protected FB:FirebaseConfig;
 
     //contiene metadata del modelo leido desde cloud function
     public modelMeta:TModelMeta;
@@ -27,6 +30,7 @@ export abstract class Fb_Controller<TModel,TIModel, TModelMeta> {
 
     constructor() {
         this.UtilCtrl = new UtilControllers();
+        this.FB = FirebaseConfig.getInstance();
     }
 
     /*updateMetada()*/
@@ -34,15 +38,22 @@ export abstract class Fb_Controller<TModel,TIModel, TModelMeta> {
     //esa actualizacion la denominaré en *caliente*, si por alguna razon no se puede actualizar en *caliente* se intentara crear un objeto en desde la clase meta correspondiente 
     protected updateMetada():Promise<void>{
         
+        //representa la api de cloud functions
+        const app_Fn = this.FB.app_Fn; 
+
+        
+
         //extraer part de modelo meta en *frio*
         const mMeta = <ModelMetadata><unknown>this.modelMeta_Offline;
         
-        let fn = Fb_app.fnHttpsCallable(mMeta.__nameFnCloudMeta);
-        
-        return fn().then((resultMeta) => {
+        let fn = Axios.default.get("helloWorld");
+                    //app_Fn.httpsCallable("helloWorldApp")//(mMeta.__nameFnCloudMeta);
+
+        return fn.then((resultMeta) => {
             
             if (resultMeta && resultMeta != null) {
-                this.modelMeta = <TModelMeta><unknown>resultMeta;    
+                console.log(resultMeta);
+                //this.modelMeta = <TModelMeta><unknown>resultMeta;    
             }          
             return;
         })
@@ -66,7 +77,7 @@ export abstract class Fb_Controller<TModel,TIModel, TModelMeta> {
     //Argumentos:
     //cursorQuery: Cursor
     protected getDocs(cursorQuery:firebase.firestore.Query<firebase.firestore.DocumentData>){
-        return Fb_app.firestoreReady()
+        return this.FB.firestoreReady()
         //ejecutar la lectura
         .then(()=>{
             return cursorQuery.get()
@@ -88,7 +99,7 @@ export abstract class Fb_Controller<TModel,TIModel, TModelMeta> {
     //Parametros:
     //
     protected getBy_id(cursorRef_id:firebase.firestore.DocumentReference<firebase.firestore.DocumentData>){
-        return Fb_app.firestoreReady()
+        return this.FB.firestoreReady()
         //ejecutar la lectura
         .then(() => {
             return  cursorRef_id.get()
@@ -120,12 +131,12 @@ export abstract class Fb_Controller<TModel,TIModel, TModelMeta> {
     
         const collectionPath = this.UtilCtrl.getPathCollection(mMeta, _pathBase);
 
-        return Fb_app.firestoreReady()
+        return this.FB.firestoreReady()
         //actualizar la metadata
         .then(() => this.updateMetada())
         //ejecutar creacion
         .then(() => {
-            return Fb_app.firestore()
+            return this.FB.app_FS
             .collection(collectionPath)
             .doc(newDoc["_id"])
             .set(newDoc, { merge: true });
@@ -146,12 +157,12 @@ export abstract class Fb_Controller<TModel,TIModel, TModelMeta> {
 
         const collectionPath = this.UtilCtrl.getPathCollection(mMeta, _pathBase);
 
-        return Fb_app.firestoreReady()
+        return this.FB.firestoreReady()
         //actualizar la metadata
         .then(() => this.updateMetada())
         //ejecutar la actualizacion
         .then(() => {
-            return Fb_app.firestore()
+            return this.FB.app_FS
             .collection(collectionPath)
             .doc(updatedDoc["_id"])
             .update(updatedDoc);
@@ -174,12 +185,12 @@ export abstract class Fb_Controller<TModel,TIModel, TModelMeta> {
 
         const collectionPath = this.UtilCtrl.getPathCollection(mMeta, _pathBase);
 
-        return Fb_app.firestoreReady()
+        return this.FB.firestoreReady()
             //actualizar la metadata
             .then(() => this.updateMetada())
             //ejecutar la actualizacion
             .then(() => {
-                return Fb_app.firestore()
+                return this.FB.app_FS
                     .collection(collectionPath)
                     .doc(_id)
                     .delete();

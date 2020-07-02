@@ -100,14 +100,35 @@ export interface IMetaCampo<TCampo, ext_Meta>{
 }
 
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
+/*NomsDictionaryMC */
+//almacena los nombres de modelos y colecciones usados en 
+//el proyecto para acceso en tiempo de ejecucion 
+//IMPORTANTE:
+//las propiedades de este objeto estan en singular pero se 
+//les asigna un subObjeto con propiedades para determinar 
+//si se usa: 
+//
+//Plural   P
+//
+//SIngular   S
+//
+export var nomsDictionaryMC = {
+    Rol : {S: "Rol", P:"Roles"},
+    Usuraio : {S: "Usuario", P:"Usuarios"},
+
+    Producto : {S: "Producto", P:"Productos"},
+}
+
+
+//████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
 /*abstract class ModelMetada*/
 //
 export abstract class ModelMetadata implements IMetaColeccion{
     
+    public abstract __nomModel: string;
     public abstract __nomColeccion: string;
     public abstract __isEmbSubcoleccion: boolean;
     public abstract __nameFnCloudMeta: string;
-
 
     constructor(){}
 

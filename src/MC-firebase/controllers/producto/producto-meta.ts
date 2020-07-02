@@ -1,5 +1,5 @@
 import { IProducto } from "../../models/producto/producto-m";
-import { ModelMetadata, IMetaCampo, IMetaColeccion } from "../meta";
+import { ModelMetadata, nomsDictionaryMC, IMetaCampo } from "../meta";
 
 
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
@@ -7,7 +7,8 @@ import { ModelMetadata, IMetaCampo, IMetaColeccion } from "../meta";
 //
 export class ProductoMeta extends ModelMetadata implements IProducto<any>{
     
-    __nomColeccion = "Producto";
+    __nomColeccion = nomsDictionaryMC.Producto.P;
+    __nomModel = nomsDictionaryMC.Producto.S
     __isEmbSubcoleccion = false;
     __nameFnCloudMeta = "";
     
@@ -16,7 +17,7 @@ export class ProductoMeta extends ModelMetadata implements IProducto<any>{
         default:"",
     };
     _pathDoc:IMetaCampo<string, any> = {
-        nom:"_id",
+        nom:"_pathDoc",
         default:""
     };
     

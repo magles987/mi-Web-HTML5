@@ -5,11 +5,6 @@ import Vue from 'vue'
 import { Router } from "./ts/router"; 
 //import App from './App'
 
-//configuracion y puesta en marcha de firebase
-import { Fb_app } from "./ts/firebase-config";
-
-//
-
 //importaciones de estilos globales:
 //import "../css/global.css"
 

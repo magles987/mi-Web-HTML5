@@ -1,5 +1,5 @@
 import * as firebase from "firebase/app";
-import { Fb_app } from "../../../ts/firebase-config";
+import { FirebaseConfig } from "../../../ts/firebase-config";
 
 //cargar la api de auth de Firebase
 import "firebase/auth";
@@ -7,18 +7,18 @@ import "firebase/auth";
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
 /*class Auth*/
 //
-export class Fb_AuthController {
+export class AuthController {
 
     //instancia de la app usada
-    private auth:firebase.auth.Auth;
-
-    //contenedor instancia Singleton
-    private  static AuthCtrl:Fb_AuthController;
+    private app_auth:firebase.auth.Auth;
 
     private UserCredential:firebase.auth.UserCredential;
     public currentUser:firebase.User;
 
     private mapAuthProviders:Map<string, any>;
+
+    //contenedor instancia Singleton
+    private static instance:AuthController;
 
     constructor() {  
         //inicializar mapas     
@@ -26,12 +26,7 @@ export class Fb_AuthController {
         
         //obtener la instancia de la app de firebase
         //que se esta usando
-        this.auth = Fb_app.fb_auth();
-
-        //configurar los proveedores de autenticacion 
-        //(google, facebook, twitter) para que muestren
-        // una Interfaz en español
-        this.auth.languageCode = 'es';
+        this.app_auth = FirebaseConfig.getInstance().app_Auth;
 
         this.configAuthWithGoogle();
         this.configAuthWithFacebook();
@@ -43,16 +38,17 @@ export class Fb_AuthController {
 
     /*getAuth()*/
     //obtener una unica instancia (Singleton)
-    public static getAuth():Fb_AuthController{
-        const instance = (Fb_AuthController.AuthCtrl)? Fb_AuthController.AuthCtrl : new Fb_AuthController();
-        Fb_AuthController.AuthCtrl = instance;
-        return instance;
+    public static getInstance():AuthController{
+        if (!AuthController.instance) {
+            AuthController.instance = new AuthController();
+        }
+        return AuthController.instance;
     }
     
     /*AuthStateChanged()*/
     //detecta automaticamente si el usuario a cambiado
     private AuthStateChanged():void{
-        this.auth.onAuthStateChanged((cUser) => {
+        this.app_auth.onAuthStateChanged((cUser) => {
             this.currentUser = (cUser)? cUser : null;
             return;
         })
@@ -64,7 +60,7 @@ export class Fb_AuthController {
     //Parametros:
     //
     public createAuthWithEmail(email:string, password:string){     
-        return this.auth.createUserWithEmailAndPassword(email, password)
+        return this.app_auth.createUserWithEmailAndPassword(email, password)
             .then((credentials) => {
                 this.UserCredential = credentials;
                 return credentials.user;
@@ -87,7 +83,7 @@ export class Fb_AuthController {
         
         // si es local tiene un tratamiento especial
         if (nomProvider == "local") {
-            return this.auth.signInWithEmailAndPassword(email, password)
+            return this.app_auth.signInWithEmailAndPassword(email, password)
             .then((credentials) => {
                 this.UserCredential = credentials;
                 this.currentUser = credentials.user;
@@ -99,7 +95,7 @@ export class Fb_AuthController {
 
         //tipo de despliegue de formulario
         if (type == "PopUp") {
-            return this.auth.signInWithPopup(provider)
+            return this.app_auth.signInWithPopup(provider)
             .then((credentials) => {
                 this.UserCredential = credentials;
                 this.currentUser = credentials.user;
@@ -108,9 +104,9 @@ export class Fb_AuthController {
         }
         
         if (type == "Redirect") {
-            return  this.auth.signInWithRedirect(provider)
+            return  this.app_auth.signInWithRedirect(provider)
             .then(() => {
-                return this.auth.getRedirectResult();
+                return this.app_auth.getRedirectResult();
             })            
             .then((credentials) => {
                 this.UserCredential = credentials;
@@ -124,7 +120,7 @@ export class Fb_AuthController {
     /*signOut()*/
     //desloguearse de cualquier proovedor
     public signOut(){
-        return this.auth.signOut()
+        return this.app_auth.signOut()
         .then(() => {
             this.currentUser = null;
             this.UserCredential = null;

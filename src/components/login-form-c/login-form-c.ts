@@ -4,7 +4,7 @@ import { CombinedVueInstance } from 'vue/types/vue';
 import { Component } from '../shared/ts/component';
 import { Util_Components } from "../shared/ts/util-comp";
 
-import { Fb_AuthController } from '../../MC-firebase/controllers/auth/auth-ctrl';
+import { AuthController } from '../../MC-firebase/controllers/auth/auth-ctrl';
 
 import jquery from "jquery";
 
@@ -35,7 +35,7 @@ export class LoginFormComponent extends Component<PropsForComponent>{
     public login_email:string;
     public login_password:string;
 
-    private auth:Fb_AuthController;
+    private auth:AuthController;
 
     constructor(
         //contiene un contexto this de la 
@@ -48,7 +48,7 @@ export class LoginFormComponent extends Component<PropsForComponent>{
         this.isInjectPropsClonated = false; //determina si se desea que el objeto se clone
         this.inject_props = this.that_Vue.$props[LoginFormComponent.nomProps] || new PropsForComponent();
 
-        this.auth = Fb_AuthController.getAuth();
+        this.auth = AuthController.getInstance();
         this.currentUser = this.auth.currentUser; 
         this.login_email = "";
         this.login_password = "";

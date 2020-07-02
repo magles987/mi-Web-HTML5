@@ -1,4 +1,4 @@
-import { Fb_app } from "../../../ts/firebase-config";
+import { FirebaseConfig } from "../../../ts/firebase-config";
 import { Fb_Controller } from "../fb-controller";
 
 import { Producto, IProducto } from "../../models/producto/producto-m";
@@ -37,12 +37,12 @@ export class ProductoController extends Fb_Controller<Producto, IProducto<any>, 
         //por ejemplo: si es una coleccion raiz es seguro que NO se necesitará 
         //consulta de tipo collectionGroup 
         if (!(isCollectionGroup && mMeta.__isEmbSubcoleccion)) {
-            cursorQuery = Fb_app.firestore()
+            cursorQuery = this.FB.app_FS
             .collection(this.UtilCtrl.getPathCollection(mMeta, _pathBase))
             .orderBy(mMeta._id.nom, 'asc')
-            .limit(50);            
+            .limit(3);            
         } else {
-            cursorQuery = Fb_app.firestore()
+            cursorQuery = this.FB.app_FS
             .collectionGroup(this.UtilCtrl.getPathCollection(mMeta, _pathBase))
             .orderBy(mMeta._id.nom, 'asc')
             .limit(50);
@@ -64,7 +64,7 @@ export class ProductoController extends Fb_Controller<Producto, IProducto<any>, 
         
         const mMeta = this.modelMeta || this.modelMeta_Offline;
 
-        let cursorRef_id = Fb_app.firestore()
+        let cursorRef_id = this.FB.app_FS
         .collection(mMeta.__nomColeccion).doc(_id);
 
         return this.getBy_id(cursorRef_id)
