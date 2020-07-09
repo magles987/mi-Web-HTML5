@@ -1,9 +1,5 @@
 import { IProducto } from "../../models/producto/producto-m";
-<<<<<<< HEAD
 import { ModelMetadata, nomsDictionaryMC, IMetaCampo } from "../meta";
-=======
-import { ModelMetadata, IMetaCampo } from "../meta";
->>>>>>> 05e6d3fe50914f87dd7f29e123daa3b015a848cf
 
 
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████

@@ -7,14 +7,33 @@ import "firebase/auth";
 import "firebase/firestore";
 import "firebase/functions";
 
-import { fbKeyConfig_dev, fbKeyConfig_prod } from "./_firebase-key-config";
+import { ENV } from "../environment";
+import { fbKey_dev, fbKey_prod } from "./_firebase-key-config";
 
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
-//definicion de los contenedores de configuracion 
-//ya sea para _dev o para _prod
-interface IfbConfig{
-    keyConfig:any
-}
+//host de los servicios de la suite de firebase (incluyendo emuladores)
+export var host = {
+
+    //path Project
+    //obtiene el proyecto directamente de la 
+    //configuracion secreta o lo establece como  ""
+    pathProject: `/${ENV().firebase.fbKey['projectId'] || ''}`,
+
+    //Ubicacion
+    locationProyect:"/us-central1",
+
+    //remotos (de la suite de firebase)
+    CloudFunctions : "",
+    Firebase:"",
+    Firestore:"",
+    Storage:"",
+    
+    //emuladores:
+    Emu_CloudFunctions : "http://localhost:5001",
+    Emu_Firebase:"",
+    Emu_Firestore:"",
+    Emu_Storage:"",
+};
 
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
 /*class FirebaseConfig*/
@@ -26,9 +45,8 @@ interface IfbConfig{
 //sino usar el metodo static getInstance()
 export class  FirebaseConfig{
 
-    //flags de estado
-    private _isDevelop = true;
-    private _isLocalCloudFunctions = true;
+    //host de firebase segun apis (y segun si son emulados)
+    public host = host;
 
     //app representacion de la siute de firebase
     private app:firebase.app.App;
@@ -58,18 +76,10 @@ export class  FirebaseConfig{
         //adicionales si ya existe una instancia
         if (!FirebaseConfig.instance) {
 
-            //escoger objeto secretos y constantes 
-            //de configuracion
-            const fbConfig_dev:IfbConfig = {
-                keyConfig : fbKeyConfig_dev,
-            }
-            const fbConfig_prod:IfbConfig = {
-                keyConfig : fbKeyConfig_prod,
-            }
-            const fbConfig = (this._isDevelop) ? fbConfig_dev : fbConfig_prod;
+            const fbConfig = ENV().firebase;
 
             //configuracion de app que representa la suite de firebase
-            this.app = firebase.initializeApp(fbConfig.keyConfig);
+            this.app = firebase.initializeApp(fbConfig.fbKey);
 
             //configuracion de apis especificas de firebase:            
             this.app_FS = this.app.firestore();
@@ -77,8 +87,8 @@ export class  FirebaseConfig{
             this.app_Fn = firebase.functions();
 
             //detectar si se esta usando el emulador de cloud functions
-            if (this._isLocalCloudFunctions) {
-                this.app_Fn.useFunctionsEmulator("http://localhost:5001");                
+            if (fbConfig.isLocalCloudFunctions) {
+                this.app_Fn.useFunctionsEmulator(this.host.Emu_CloudFunctions);                
             }
 
             //configurar los proveedores de autenticacion 
@@ -106,41 +116,29 @@ export class  FirebaseConfig{
     }
     
 
-
-
-
-    // /*getApp()*/
-    // //devuelve la firebase app activa
-    // public static getApp(){
-    //     return fb_app;;
-    // }
-    
-    // /*getFirestore()*/
-    // //devuelve la instancia de firestore
-    // public static firestore():firebase.firestore.Firestore{
-    //     return fb_app.firestore();
-    // }
-
-
-
-    // /*fb_auth()*/
-    // //devuelve el objeto configurado para la api de autenticacion
-    // public static fb_auth(){
-    //     return fb_app.auth();
-    // }
-    
-    // /*cloudFunctions()*/
-    // //devuelve el objeto configurado para usar cloud functions
-    // public static cloudFn(){
-    //     return fb_cloudFn;
-    // }
-
-    // /*fnHttpsCallable()*/
-    // //reescritura del metodo httpsCallable() de firebase para 
-    // //poder minimizar los llamados a metodos un una misma linea de codigo
-    // public static fnHttpsCallable(name:string, options?:firebase.functions.HttpsCallableOptions){
-    //     return fb_cloudFn.httpsCallable(name, options);
-    // }
+    /*callFnWithOnCall()*/
+    // un llamado exclusivo que tiene la suite de firebase para llamar 
+    //CloudFunctions como si se estuviera usando el patron de diseño 
+    //proxy para funciones, la funcion declarada en cloud function 
+    //debe ser de tipo   onCall   , y solo debe ser usada para esperar 
+    //un JSON (no sive para otro tipo de respuestas), la ventaja que 
+    //tiene es que no hay que configurar cors y es mas rapida, solo 
+    //se necesita el nombre de la cloudFunction a llamar y NO se 
+    //necesita de clientes HTTP como axios
+    //es ideal para obtener la metadata
+    //
+    //Argumentos:
+    //nomFn: el nombre de la funcion IMPORTANTE: NO es el path, es el nombre
+    //
+    //ReqData: datos de request (configuracion de la peticion , 
+    //que se hará con algun tipo o interfaz de objeto personalizada)
+    //
+    //options: opcionales, parece que solo sirve para determinar 
+    //cuanto tiempo se debe esperar la respuesta
+    public callFnWithOnCall<TReqData>(nomFn:string, ReqData:TReqData, options?:firebase.functions.HttpsCallableOptions){
+        const preCall = this.app_Fn.httpsCallable(nomFn, options);
+        return preCall(ReqData);
+    }
 
     
 

@@ -1,6 +1,6 @@
 import * as firebase from "firebase/app";
-import { FirebaseConfig } from "../../ts/firebase-config";
-import * as Axios from "axios";
+import { FirebaseConfig } from "../../ts/firebase-config/firebase-config";
+import axios from "axios";
 
 import { UtilControllers } from "./_Util-ctrl";
 import { ModelMetadata } from "./meta";
@@ -45,8 +45,29 @@ export abstract class Fb_Controller<TModel,TIModel, TModelMeta> {
 
         //extraer part de modelo meta en *frio*
         const mMeta = <ModelMetadata><unknown>this.modelMeta_Offline;
-        
-        let fn = Axios.default.get("helloWorld");
+        let ax = axios.create({
+            baseURL:"http://localhost:5001/prueba1-87d2f/",
+            
+        });
+        // let fn = axios.get("http://localhost:5001/prueba1-87d2f/us-central1/helloWorld", {
+        //     responseType : "text",
+        //     // headers: {
+        //     //     "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS, POST",
+        //     //     "Access-Control-Allow-Headers": "Origin, X-Requested-With, Content-Type, Accept",
+        //     //     "Access-Control-Allow-Origin": "*",
+        //     //     "Access-Control-Max-Age": "3600"
+        //     //   }
+        // });
+        let fn = ax.get("us-central1/helloWorld", {
+            responseType : "text",
+            // headers: {
+            //     "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS, POST",
+            //     "Access-Control-Allow-Headers": "Origin, X-Requested-With, Content-Type, Accept",
+            //     "Access-Control-Allow-Origin": "*",
+            //     "Access-Control-Max-Age": "3600"
+            //   }
+        });        
+        //Promise.resolve("mal") 
                     //app_Fn.httpsCallable("helloWorldApp")//(mMeta.__nameFnCloudMeta);
 
         return fn.then((resultMeta) => {

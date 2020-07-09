@@ -1,5 +1,5 @@
 import * as firebase from "firebase/app";
-import { FirebaseConfig } from "../../../ts/firebase-config";
+import { FirebaseConfig } from "../../../ts/firebase-config/firebase-config";
 
 //cargar la api de auth de Firebase
 import "firebase/auth";

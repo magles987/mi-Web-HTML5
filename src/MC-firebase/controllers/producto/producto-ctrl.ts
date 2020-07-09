@@ -1,4 +1,4 @@
-import { FirebaseConfig } from "../../../ts/firebase-config";
+import { FirebaseConfig } from "../../../ts/firebase-config/firebase-config";
 import { Fb_Controller } from "../fb-controller";
 
 import { Producto, IProducto } from "../../models/producto/producto-m";
