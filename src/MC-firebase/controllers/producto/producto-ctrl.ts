@@ -3,117 +3,275 @@ import { Fb_Controller } from "../fb-controller";
 
 import { Producto, IProducto } from "../../models/producto/producto-m";
 import { ProductoMeta } from "./producto-meta";
+import { ProductoFormatter } from "./producto-formatter";
+
+import { ProductoHookHandler, IProductoHookParams } from "./producto-hook-handler";
+import { ProductoFilterHandlerCtrl, IProductoFilter, IProductoPopulationFilter } from "./producto-filter-handler";
+import { Fb_Paginator } from "../fb-paginator";
+import { ProductoPopulator } from "./producto-populator-handler";
+
 
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
-/*class ProductoController extends Fb_Controller*/
-//
+/** @info <hr>  
+ * *class singleton*
+ * Controller para este Modelo
+ * ____
+ * *extends:*  
+ * `Fb_Controller`  
+ * ____
+ */
 export class ProductoController extends Fb_Controller<Producto, IProducto<any>, ProductoMeta>{
 
+    /** *private static*   
+     * Almacena la instancia única de esta clase
+     * ____
+     */
+    private static instance:ProductoController;
+
+    /** 
+     * `constructor()`  
+     * 
+     * ____
+     */
     constructor(){
         super();
         //configurar los metadatos tanto el offline como el de cloudFn
         this.modelMeta_Offline = new ProductoMeta();
-        this.updateMetada().catch((error)=>{ console.log(error)});
+        this.updateModelMetada().catch((error)=>{ console.log(error)});
+        
+        this.paginator = new Fb_Paginator("classic");
+        this.populator = new ProductoPopulator(this.modelMeta_Offline, 
+                                new Fb_Paginator("none"));
+        this.modelFormatter = new ProductoFormatter();
+        //this.modelValidator = new ProductoValidator();
+
+        this.modelFilterHandler = new ProductoFilterHandlerCtrl();
+        this.modelHookHandler = new ProductoHookHandler();
 
     }
 
-    /*getAllDocs()*/
-    //Lee todos los documentos de la coleccion 
-    //Parametros:
-    //
-    //_pathBase: si el modelo de este controller pertenece a 
-    //una subcoleccion es necesario recibir un pathBase para 
-    //construir la ruta de la query
-    public getAllDocs(_pathBase?:string){
+    /** *public static* `getInstance()`  
+     * devuelve la instancia única de esta clase  
+     * ya sea que la crea o la que ya a sido creada
+     * ____
+     */
+    public static getInstance():ProductoController{
+        ProductoController.instance = (!ProductoController.instance || ProductoController.instance == null) ?
+                    new ProductoController() : ProductoController.instance;
+        return ProductoController.instance;
+    }    
+
+    /** 
+     * *public*  
+     * Lee todos los documentos de la coleccion 
+     * 
+     * *Param:*  
+     * `filter` : contiene las opciones de filtrado, 
+     * organizacion y paginacion de la consulta.  
+     *`hookParams` : Parametros para los metodos hooks 
+     * (pre y post) a la ejecucion de la lectura.  
+     * 
+     * ____
+     */
+    public getAllDocs(
+        filter:IProductoFilter, 
+        hookParams?:IProductoHookParams,
+    ){
         
-        const isCollectionGroup = false;
+        //metadata a usar
         const mMeta = this.modelMeta || this.modelMeta_Offline;
+
+        /**configuracion de filtro obligatoria para 
+         * esta Query*/
+        filter.isCollectionGroup = false;
+        filter.order._id = "asc";
+
+        //configuracion comun para el hookParams
+        hookParams = (hookParams && hookParams != null) ? 
+                     hookParams : this.getDefHookParamsInstance();
+
+        //================================================================
+        //Constructor de Query
 
         //declarar cursor de consulta
         let cursorQuery:firebase.firestore.Query<firebase.firestore.DocumentData>
         
-        //configuracion de acuerdo al tipo de consulta normal o group
-        //se puede omitir si se tiene la seguridad de usar el tipo de consulta
-        //por ejemplo: si es una coleccion raiz es seguro que NO se necesitará 
-        //consulta de tipo collectionGroup 
-        if (!(isCollectionGroup && mMeta.__isEmbSubcoleccion)) {
-            cursorQuery = this.FB.app_FS
-            .collection(this.UtilCtrl.getPathCollection(mMeta, _pathBase))
-            .orderBy(mMeta._id.nom, 'asc')
-            .limit(3);            
-        } else {
-            cursorQuery = this.FB.app_FS
-            .collectionGroup(this.UtilCtrl.getPathCollection(mMeta, _pathBase))
-            .orderBy(mMeta._id.nom, 'asc')
-            .limit(50);
-        }
- 
-        return this.getDocs(cursorQuery)
-        .then((preDocs) => {
-            //aqui se puede hacer un hook de lectura
-            let docs = preDocs;
-            return docs;
-        });
+        /**Determinar tipo de coleccion (normal o group) */
+        cursorQuery = this.configTypeCollectionQuery(cursorQuery, filter);
+
+        /**Construit condiciones para query */
+        //..aqui
+
+        /**Determinar orden */
+        cursorQuery = cursorQuery.orderBy(mMeta._id.nom, filter.order._id);
+        
+        /**Configurar limite y pagina */
+        cursorQuery = this.configLimitAndPaginateQuery(cursorQuery, filter);
+        
+        //ejecutar la consulta en comun
+        return this.execQuery(cursorQuery, filter, hookParams);
     }
 
-    /*getDocBy_id()*/
-    //
-    //Parametros:
-    //
-    public getDocBy_id(_id:string){
+    /** 
+     * *public*  
+     * --TEST---
+     * 
+     * *Param:*  
+     * `filter` : contiene las opciones de filtrado, 
+     * organizacion y paginacion de la consulta.  
+     *`hookParams` : Parametros para los metodos hooks 
+     * (pre y post) a la ejecucion de la lectura.  
+     * 
+     * ____
+     */
+    public fk_PruebaProd(
+        filter:IProductoFilter, 
+        hookParams?:IProductoHookParams,
+    ){
         
+        //metadata a usar
         const mMeta = this.modelMeta || this.modelMeta_Offline;
 
-        let cursorRef_id = this.FB.app_FS
-        .collection(mMeta.__nomColeccion).doc(_id);
+        /**configuracion de filtro obligatoria para 
+         * esta Query*/
+        filter.isCollectionGroup = false;
+        filter.order._id = "asc";
 
-        return this.getBy_id(cursorRef_id)
-        .then((preDoc) => {
-            //aqui se puede hacer un hook de lectura
-            let docs = preDoc;
-            return docs;
-        });
+        //configuracion comun para el hookParams
+        hookParams = (hookParams && hookParams != null) ? 
+                     hookParams : this.getDefHookParamsInstance();
+
+        //================================================================
+        //Constructor de Query
+
+        //declarar cursor de consulta
+        let cursorQuery:firebase.firestore.Query<firebase.firestore.DocumentData>
+        
+        /**Determinar tipo de coleccion (normal o group) */
+        cursorQuery = this.configTypeCollectionQuery(cursorQuery, filter);
+
+        /**Construir condiciones para query */
+        cursorQuery = cursorQuery.where(mMeta.fk_PruebaProd.nom, "array-contains", "Productos/171e0ce6925-907198e3c1f87bc1");
+
+        /**Determinar orden */
+        cursorQuery = cursorQuery.orderBy("_id", "asc");
+        
+        /**Configurar limite y pagina */
+        cursorQuery = this.configLimitAndPaginateQuery(cursorQuery, filter);
+        
+        //ejecutar la consulta en comun
+        return this.execQuery(cursorQuery, filter, hookParams);
     }
 
-    /*createDoc()*/
-    //
-    //Parametros:
-    //
-    public createDoc(newDoc:Producto, _pathBase?:string){
-        //aqui se puede usar un hook pre-crear
-        newDoc = newDoc;
-        return this.create(newDoc, _pathBase)
-        .then(() => {
-            //aqui se puede usar un hook post-crear 
-            return;
-        });
+
+    /** @override <hr>  
+     * *public*  
+     * configuracion personalizada para la creacion
+     * ____
+     */ 
+    public create(
+        newDoc:Producto, 
+        hookParams?:IProductoHookParams, 
+        _pathBase="", 
+        ext_id=null,
+    ){
+        //configuracion personalizada para el hookParams
+        hookParams = (hookParams && hookParams != null) ? 
+                     hookParams : this.getDefHookParamsInstance();
+
+        return super.create(newDoc, hookParams, _pathBase, ext_id);
     }
 
-    /*update()*/
-    //
-    //Parametros:
-    //
-    public updateDoc(updatedDoc:Producto, _pathBase?:string){
-        //aqui se puede usar un hook pre-editar
-        updatedDoc = updatedDoc;
+    /** @override <hr> 
+     * *public*  
+     * configuracion personalizada para la actualizacion
+     * ____
+     */ 
+    public update(
+        updatedDoc:Producto, 
+        hookParams:IProductoHookParams,  
+        _pathBase="", 
+        isStrongUpdate=false,             
+    ){
+        //configuracion personalizada para el hookParams
+        hookParams = (hookParams && hookParams != null) ? 
+                     hookParams : this.getDefHookParamsInstance();
 
-        return this.update(updatedDoc, _pathBase)
-        .then(() => {
-            //aqui se puede usar un hook post-actualizar
-            return;
-        });
+        return super.update(updatedDoc, hookParams, _pathBase, isStrongUpdate);
     }
 
-    /*deleteDoc()*/
-    //
-    //Parametros:
-    //_id: el id del doc a eliminar
-    public deleteDoc(_id:string, _pathBase?:string){
-        //aqui se puede usar un hook pre-eliminar
-        return this.delete(_id, _pathBase)
-        .then(() => {
-            //aqui se puede usar un hook post-eliminar
-            return;
-        });
+    /** @override <hr> 
+     * *public*  
+     * configuracion personalizada para la eliminacion
+     * ____
+     */ 
+    public delete(
+        _id:string, 
+        hookParams:IProductoHookParams,
+        _pathBase="", 
+    ){
+        //configuracion personalizada para el hookParams
+        hookParams = (hookParams && hookParams != null) ? 
+                     hookParams : this.getDefHookParamsInstance();
+
+        return super.delete(_id, hookParams, _pathBase);
     }
+
+    //================================================================
+    //utilitarios sobreescritos obligatorios  
+
+    /** @override <hr>  
+     * *public*  
+     * ____
+     */
+    public getModelFormatter():ProductoFormatter{
+        const r = <ProductoFormatter>this.modelFormatter;
+        return r
+    } 
+
+    /** @override <hr>  
+     * *public*  
+     * ____
+     */
+    // public getModelValidator():ProductoValidator{
+    //     const r = <ProductoValidator>this.modelValidator;
+    //     return r
+    // }     
+
+    /** @override <hr>  
+     * *public*  
+     * ____
+     */
+    public getModelPopulator():ProductoPopulator{
+        const r = <ProductoPopulator>this.populator;
+        return r
+    }    
+    
+    /** @override <hr>  
+     * *public*  
+     * ____
+     */
+    public getDefFilterInstance():IProductoFilter{
+        const r = this.modelFilterHandler.getFilterPrototype();
+        return <IProductoFilter> r
+    }
+
+    /** @override <hr>  
+     * *public*  
+     * ____
+     */
+    public getDefPopulationFilterInstance():IProductoPopulationFilter{
+        const r = this.modelFilterHandler.getPopulationFilterPrototype();
+        return <IProductoPopulationFilter> r
+    }    
+
+    /** @override <hr>  
+     * *public*  
+     * ____
+     */
+    public getDefHookParamsInstance():IProductoHookParams{
+        const r = this.modelHookHandler.getHookParamsPrototype();
+        return <IProductoHookParams> r;
+    }
+
 }

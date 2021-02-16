@@ -1,38 +1,337 @@
-
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
-/*IMetaColeccion*/
-export interface IMetaColeccion{
-    __nomColeccion:string;
-    __isEmbSubcoleccion:boolean;
+
+/** 
+ * *enum*  
+ * descrip...  
+ * 
+*/
+export enum EFieldType {
+
+    //================================================================
+    //PRIMITIVOS:
+
+    /**valores booleanos */
+    boolean = "boolean",
+    /**valores numericos */
+    number = "number",
+    /**valores de texto */
+    string = "string",
+    /**valor de objeto especial almacenable 
+     * en la BD.  
+     * *Recordar:*  
+     * cada BD gestiona diferente ese objeto.
+     * En Firestore se almacenan tipos `timestamp`
+     * En Mongo almacena el objeto Date completo
+     */
+    date = "date",
+    /**Valor de objeto especial que permite 
+     * almacenar MongoDB */
+    RegExp = "RegExp",
+
+    /**Representa valores de campos utiles 
+     * para el sistema y normalmente tienen un 
+     * prefijo `_` en su nombre (Ejemplo: *_id*, 
+     * *_pathDoc*), estos valores NO necesitan
+     * ser formateados.  
+    */
+    _system = "_system",
+
+    //================================================================
+    //ESTRUCTURA (OBJETOS, EMBEBIDOS Y REFERENCIAS):
+    
+    /**
+     * indica que el campo contiene estructura de objetos 
+     * que **NO** es un embebido.  
+     * Estos campos especiales deben nombrarse con el 
+     * prefijo `obj_` (para el caso de mongoDB) o `map_` 
+     * para el caso de firestore
+     */
+    objectOrMap = "object-or-map",
+    
+    /**
+     * indica que el campo hará referencia a subcolecciones 
+     * (Firestore) o estructura embebida (MongoDB), que a 
+     * la larga es lo mismo.  
+     * Estos campos especiales deben nombrarse con el 
+     * prefijo `emb_`
+     */
+    embedded = "embedded",    
+
+    /**
+     * indica que el campo almacena referencias (_id o 
+     * _pathDoc) de documentos de otras colecciones 
+     * o subColecciones
+     */
+    foreignKey = "foreignKey",
+
+    /**
+     * indica que el campo almacena un clon referencia 
+     * a otro documento en otra coleccion o subcoleccion
+     */    
+    foreignClone = "foreignClone",    
+    
 }
 
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
-/*IMetaCampo*/
-//Interfaz con metadatos (banderas y configuracion) para cada campo de cada modelo
-//Tipado:
-//TCampo:
-//el tipo del campo (suelen ser primitivos  excepto los campos map_ o emb_)
-//
-//ext_Util:
-//recibe un tipado de formato: Modelo_util (es la clase no la interfaz)
-export interface IMetaCampo<TCampo, ext_Meta>{
+/**interfaces independientes de metadata para cada 
+ * tipo formtado de valores primitivos.
+ * 
+ * Se realiza asi para dar opcion de extender 
+ * interfaces personalizando cada formato de 
+ * valor primitivo en diferentes modelMeta
+*/
 
-    //nom OBLIGATORIO, almacena el nombre del campo
-    //en string para ser usado en vez de codigo rigido
-    //en caso tal de cambiar el nombre solo se debe hacer
-    //en la clase util de cada coleccion
-    nom:string;
+/** @info <hr>  
+ * *interface*
+ * metadata para formatear valores booleanos
+ * ____
+ */
+export interface IMetaFtBoolean {
+}
 
-    //nom que contiene toda la ruta path de los subCampos de un campo map
-    //se usa para configurar querys con condiciones en estos campos
-    //los campos array map no requieren esta funcioanlidad ya que
-    //las querys para cualquier campo array en firestore son muy limitadas
-    nomMapPath?:string;
+/** @info <hr>  
+ * *interface*
+ * metadata para formatear valores numericos
+ * ____
+ */
+export interface IMetaFtNumber {
+    /**Determina si se usa como booleano numerico */
+    isNumberBoolean: boolean;
+    /** Determina el rango entre positivos y negativos: 
+     * *Type:*  
+     * `+` : solo positivos.  
+     * `-` : solo negativo.    
+     * `+/-` : ambos
+    */
+    typeZ: "+" | "-" | "+/-";
+    /** utilidad que determina como redondear 
+     * el numero y cuantos decimales asignar.  
+     * si es null, no ejecuta ajuste.  
+     * **Recordar:** Siempre debe ser enteros.  
+     * 
+     * Formato:  
+     * Enteros Positivos:  
+     * expFactor = 0 indica redondeo predefinido 
+     * por la libreria Math o que es un campo 
+     * usado como boolean numerico para Firestore.  
+     * 
+     * expFactor = 1 indica redondeo en decenas  
+     * expFactor = 2 indica redondeo en centenas  
+     * expFactor = 3 indica redondeo en Miles  
+     * ...  
+     * Enteros Negativos:  
+     * expFactor = -1 indica redondeo en decimas  
+     * expFactor = -2 indica redondeo en centesimas  
+     * expFactor = -3 indica redondeo en Milesimas  
+     * ...  
+     */
+    expFactorRoundDecimal: number | null;
+    /** Determina el tipo de redondeo deseado: 
+     * *Type:*  
+     * `none` : no se redondea.  
+     * `round` : redondeo estandar (arriba si es >=5 y abajo si es <5).    
+     * `floor` : redondeo hacia abajo.  
+     * `ceil` : redondeo hacia arriba.  
+    */
+    typeRoundOut: "none" | "round" | "floor" | "ceil";
+}
 
-    //default indica el valor inicial que debe tener el campo antes 
-    //de manipular los datos (Cuidado: esta bandera tiene referencias en 
-    //"" asi que no se puede cambiar el nombre)
-    default:TCampo;
+/** @info <hr>  
+ * *interface*
+ * metadata para formatear valores de texto
+ * ____
+ */
+export interface IMetaFtString {
+    /** Determina si se debe realizar alguna capitalizacion 
+     * en el texto, pasar de mayusculas a minusculas o al 
+     * contrario, o colocar la primera letra en Mayuscula 
+     */
+    typeCase?: "UpperCase" | "LowerCase" | "CapitalizeFirstCase"
+
+    /** Formateo Especial a partir de expresiones regulares 
+     * construidas desde string 
+     */
+    f_RemplaceForRegExp?: {
+        strRegExp: string;
+        strReplace: string;
+    }[];
+}
+
+/** @info <hr>  
+ * *interface*
+ * metadata para formatear valores de fecha
+ * de acuerdo a cada BD
+ * ____
+ */
+export interface IMetaFtDate {
+    //..aqui la metadata
+}
+
+/** @info <hr>  
+ * *interface*
+ * metadata para formatear valores de 
+ * expresion regular de acuerdo a cada 
+ * para mongoBD
+ * ____
+ */
+export interface IMetaFtRegExp {
+    //..aqui la metadata
+}
+
+
+//████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
+/** @info <hr>  
+ * *interface*
+ * Interfaz con metadatos (banderas y configuracion) 
+ * para cada campo de cada *Model*
+ * ____
+ * *Types:*  
+ * `TField` : el tipado asiganado para dicho campo en *Model*, 
+ * sin embargo si el campo no es *primitive* y es un objeto  (*map_* o 
+ * *mapA* o *mapClon_* o *obj_* o *objA_* o *objClon_*) se debe tipar 
+ * como la *Imap[model]* o *Iobj[model]* correspondiente. Si es 
+ * referencial tipar como *any*. 
+ * 
+ * `TExtModelMeta` : si el campo es referencial (*emb_* o *fk_*) se debe
+ * tipar con el *modelMeta* correspondiente de la coleccion o subcoleccion 
+ * a la que haga referencia, si no tiparlo como *unknown*
+ * ____
+ */
+export interface IFieldMeta<TField, TExtModelMeta>{
+
+    /** 
+     * nombre del campo (como referencia para string)
+     * ____
+     */
+    nom : string;
+
+    /** 
+     * en BDs desnormalizadas se pueden almacenar substructuras, 
+     * que no son embebidos o subcolecciones (en firestore se 
+     * llaman map, en MongoDb son objeto), los cuales a su vez 
+     * tienen subcampos, para poder consultar dichos subcampos 
+     * en la mayoria de casos se debe hacer a traves de una ruta 
+     * relativa a la coleccion o subColeccion ejemplo: 
+     * ```typescript
+     * //para la coleccion:
+     * {
+     *      campo1:string,
+     *      campo2:string,
+     *      map_campo:{ //para Firestore
+     *          subcampo:string
+     *      }
+     *      obj_campo:{ //para mongoDB
+     *          subcampo:string
+     *      }
+     * }
+     * //para consultar subcampo se usa:
+     * "map_campo.subcampo" // para Firestore
+     * "obj_campo.subcampo" // para MongoDB
+     * ```
+     * esta propiedad `nomPath` almacena la ruta 
+     * referencial y relativa al nom campo
+     * ____
+     */
+    nomPath? : string;
+
+    /** 
+     * indica el valor inicial que debe tener el campo antes 
+     * de manipular los datos, muy util para instanciar *model* 
+     * con valores especiales (incluso estos valores 
+     * potencialmente pueden ser solicitados asincronicamente)
+     * 
+     * **IMPORTANTE:**  
+     * -> en el caso de los campos que contienen referencias
+     * asi como `ETypeField.ForeignKey` , `ETypeField.mapClon` 
+     * , `ETypeField.objectClon` el contenido de esta 
+     * propiedad define la **cardinalidad** ((0a1,1a1) si el 
+     * valor es sencillo o (0aMuchos, 1aMuchos) si es array).  
+     * ->Esta bandera tiene referencias en strings  
+     * vacios `""` asi que no se puede cambiar el nombre).
+     * ____
+     */
+    default : TField;
+
+    /**
+     * ....
+     */
+    fieldType :EFieldType;
+
+    isArray : boolean;
+
+    isVirtual? : boolean;
+
+    structureFConfig? : {
+
+        /**
+         * contiene una instancia de todo un 
+         * modelMeta externo ( puede ser de destino 
+         * a otra coleccion, una subcoleccion o una 
+         * estructura como  *map_* u *obj_* ).
+         * 
+         * **Reordar:** si se requiere usar 
+         * la misma instancia de este mismo 
+         * modelMeta a modo de recursividad; 
+         * **NO** se instancia directamente 
+         * (por que entraria en un loop infinito)
+         *  en su caso se debe usar `TExtModelMeta` 
+         * de tipo *string* y usar el valor `"this"` 
+         * que indicará que es una recursividad, 
+         * externamente se debera asignar dicha 
+         * recursividad, esto se hace ya que las 
+         * clases modelMeta NO deben contener 
+         * metodos ni propiedades de tipo *function*
+         */
+        extModelMeta: TExtModelMeta;   
+
+        /**
+         * Flag que determina si es un campo 
+         * de tipo referencial ya sea por 
+         * `EFieldType.foreignKey` o 
+         * `EFieldType.foreignClone`
+        */
+        // isReferencial : boolean;
+
+        /**
+         * si el campo es referencial (que NO sea 
+         * *objteto* o *map* o *embebido*) esta 
+         * propiedad determina el tipo de referencia 
+         * que almacenará el campo
+        */
+        typeRef?: "_id" | "_pathDoc" | "_docClone";
+
+        /**indica la cardinalidad (multiplicidad) del 
+         * campo si el campo almacena:  
+         * `"one"` --> [0a1,1a1]  
+         * `"many"` --> [0aMuchos, 1aMuchos]
+         * */
+        cardinality? : "one" | "many";
+
+        nomRefFieldLinked? : string;
+
+    }
+
+    /**Contiene la configuracion personalizada 
+     * para formatear cada valor alacenado en 
+     * cada campo 
+     */
+    formatFieldMeta : {
+        /** Configuracion de formateo para valores booleanos*/
+        ft_boolean?: IMetaFtBoolean;
+        /** Configuracion de formateo para valores numericos, 
+         * incluye el booleano numerico para Firestore*/
+        ft_number?: IMetaFtNumber;
+        /** Configuracion de formateo para valores texto en general*/
+        ft_string?: IMetaFtString
+        /** Configuracion de formateo para valores 
+         * de fecha (tipo texto plano)*/
+        ft_date?: IMetaFtDate;
+
+        /** Configuracion de formateo para valores 
+         * expresiones regulares **SOLO MONGODB**
+        */
+        ft_RegExp?: IMetaFtRegExp;    
+    }
 
     //validadores es un array de objetos
     // 
@@ -46,90 +345,131 @@ export interface IMetaCampo<TCampo, ext_Meta>{
     //     type:ETipoValidador, 
     //     msg:string}[];
 
-    //banderas que se deben activar para cada campo segun corresponda
-    //un campo puede tener varias banderas
-    isRequerido?:boolean;
-    isArray?:boolean;
-    isEmbebido?:boolean;  //indica subcoleccion
-    isFk?:boolean;
-    isMap?:boolean;
-    isVirtual?:boolean;
+    /** indica si el campo es obligatorio */
+    isRequired?:boolean;
 
-    //utilidad para los campos number
-    //determina como redondear el numero
-    //y cuantos decimales asignar
-    //esto por medio del metodo
-    //ajustarDecimales()
-    //de la clase _util,
-    //si es null, no ejecuta ajuste
-    expFactorRedondeo?:number | null;
-
-    //propiedad especial para campos number
-    //(incluso los number que simulan ser boolean)
-    //se usa para cuando se requiere consultar
-    //un valor absoluto para generar la consulta
-    //especial de igualdad por el comportamiento
-    //extraño de firestore que no permite consultar
-    //y paginar igualdades de campos number
-    //este campo almacena un numero maximo con cual
-    //poder construir la query de igualdad.
-    //este factor debe estar entre 0 y 1, normalmente
-    // es 1 sin embargo si el campo almacena numeros
-    //con decimales este factor debe contar con un decimal
-    //mayor los registros del campo, ejemplo: si el campo
-    //almacena datos como 12.034 (con 3 decimales) el maximo
-    //factor debe ser   0.0001   (con 4 decimales).
-    //(para los campos que simulan ser boolean el maximo Factor es 1)
-    maxFactorIgualdadQuery?:number;
-
-
-    //banderas de seleccion Solo escoger un grupo
-    //
-    //selecUnica  o   selecMulti   se pueden cargar de
-    //forma estatica y rigida en cada campo o de forma dinamica
-    //una vez se lean en la BD
-
+    /**si **NO** es `undefined` o `null`, indica que el campo puede 
+     * seleccionar valores de una lista, tambien indica si se 
+     * puede seleccionar 1 opcion o varias.  
+     * **Recordar:** si `typeSelect = "multiple"`  el campo debe 
+     * ser *array*
+     */
     typeSelect?:"unica"|"multiple";  
-    selectList?:TCampo[];
+    /**Si `typeSelect` esta configurada, se debe proporcionar 
+     * la lista de opciones a escoger */
+    selectList?:TField[];
 
-    //extMeta  es una propiedad especial solo usada para
-    //campos que sean de tipo map (map_ o mapA_) y
-    //subcolecciones, almacena un objeto de clase util
-    //correspondiente a ese   map   o a esa subcoeccion
-    extMeta?:ext_Meta;
 }
 
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
-/*NomsDictionaryMC */
-//almacena los nombres de modelos y colecciones usados en 
-//el proyecto para acceso en tiempo de ejecucion 
-//IMPORTANTE:
-//las propiedades de este objeto estan en singular pero se 
-//les asigna un subObjeto con propiedades para determinar 
-//si se usa: 
-//
-//Plural   P
-//
-//SIngular   S
-//
-export var nomsDictionaryMC = {
+/** *var* `nomsModel_Dictionary`  
+ * almacena los nombres de modelos y colecciones usados 
+ * en el proyecto para acceso en tiempo de ejecucion.  
+ * **Importante:**
+ * las propiedades de este objeto estan en singular pero 
+ * se les asigna un subObjeto con propiedades para 
+ * determinar si se usa: 
+ * 
+ * *Singular:* `S`  
+ * *Plural:* `P`
+ * 
+*/
+export var nomsModel_Dictionary = {
     Rol : {S: "Rol", P:"Roles"},
     Usuraio : {S: "Usuario", P:"Usuarios"},
 
     Producto : {S: "Producto", P:"Productos"},
 }
 
+//████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
+/** @info <hr>  
+ * *interface* `IReqDataMeta`  
+ * determina los campos a enviar en la peticion *onCall* 
+ * a cloudFunctions
+ * ____
+ */
+export interface IReqDataMeta {
+    /**Nombre del modelo (singular) */
+    __nomModel:string
+}
 
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
-/*abstract class ModelMetada*/
-//
-export abstract class ModelMetadata implements IMetaColeccion{
-    
-    public abstract __nomModel: string;
-    public abstract __nomColeccion: string;
-    public abstract __isEmbSubcoleccion: boolean;
-    public abstract __nameFnCloudMeta: string;
+/** 
+ * *enum*  
+ * etiqueta los diferentes tipos de colecciones para 
+ * asignar los metadatos
+ * 
+*/
+export enum ETypeCollection {
+    /**
+     * determina que es una coleccion 
+     * normal a nivel raiz
+    */
+   collection = "Collection",
+    /**
+     * indica que es una coleccion embebida 
+     * (como lo denomna mongoDB) o subcoleccion 
+     * (como lo denomina firestore). 
+     */
+    subCollection = "Embedded-subCollection",
+    /**
+     * indica que NO es una colecion en si,
+     * es una estructura de objeto definido 
+     * en un campo no prmitivo (*objects*, 
+     * *map* o *array*) 
+     */
+    objectOnly = "Object-only",
 
+}
+
+//████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
+/** @info <hr>  
+ * *abstract class* `ModelMetadata`  
+ * Factoriza propiedades comunes en la clases metadata 
+ * de cada modelo asignado a cada coleccion de la BD
+ * 
+ * **Recomendable** no usar metodos en esta clase 
+ * ni en sus hijas
+ * ____
+ */
+export abstract class ModelMetadata {
+    
+    /** *abstract*   
+     * contiene el nombre asignado al modelo (en singular)
+     * ____
+     */
+    public abstract __nomModel: string;
+
+    /** *abstract*   
+     * contiene el nombre de la coleccion registrada en la BD (en plural)
+     * ____
+     */
+    public abstract __nomColeccion: string;
+
+    /** *abstract*   
+     * determina  que tipo de coleccion es:  
+     * `collection` : coleccion normal 
+     * (coleccion a nivel raiz).  
+     * `subCollection` : indica que es 
+     * una coleccion embebida o sub coleccion.  
+     * `objectOnly` : indica que NO es una 
+     * colecion en si, es una estructura de objeto 
+     * definido en un campo no prmitivo (*objects*, 
+     * *map* o *array*)
+     * ____
+     */
+    public abstract __typeCollection: ETypeCollection;
+
+
+    /** nombre de la funcion almacenada en cloudFunction  
+     * a llamar para actualizar la metadata
+     * ____
+     */
+    public __getCloudFnMeta:string = "getFnMetadata"; 
+
+    //================================================================    
     constructor(){}
 
 }
+
+

@@ -1,18 +1,32 @@
 import { fbKey_dev, fbKey_prod } from "./firebase-config/_firebase-key-config";
 
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
-/*SELECTORES de entorno*/
-//se deben declarar el o los selectores de entorno (con su correspondiente tipado)
-//y luego asignarlos
-var ENV_SELECTOR:"dev" | "prod"; //especificar las posibles opciones
-    ENV_SELECTOR="dev"; //seleccionar
+/** 
+ * Almacena el entono en el que se esta ejecutando la 
+ * aplicacion para poder configurar globalmente.  
+ * 
+*/
+//especificar las posibles opciones en forma de tipado
+var ENV_SELECTOR:"dev" | "prod"; 
+    //seleccionar
+    ENV_SELECTOR = "dev"; 
 
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
-/*interfaz IENV que ya completa*/
+/** @info <hr>  
+ * *interface*
+ * se debe implementar para cada objeto de 
+ * configuracion de ENVIROMENT
+ * ____
+ */
 interface IENV {
+    /**Contiene la configuracion de 
+     * Entorno para la suite de firebase 
+     */
     firebase:{
-        //contiene la key del proyecto de la suite de firebase
+        
+        /**Contien la key de acceso al proyecto de firebase */
         fbKey : any;
+
         //banderas para emuladores:
         isLocalFirebase:boolean;
         isLocalFirestore:boolean;
@@ -23,7 +37,7 @@ interface IENV {
 
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
 /*Objetos ENV de acuerdo al entorno*/
-/*Desarrollo estandar*/
+/**Configuracion de desarrolo estandar */
 var ENV_dev:IENV = {
     firebase : {
         fbKey : fbKey_dev,
@@ -34,7 +48,7 @@ var ENV_dev:IENV = {
         isLocalStorage : false,
     }
 }
-/*Produccion estandar*/
+/**Configuracion de  produccion estandar */
 var ENV_prod:IENV = {
     firebase : {
         fbKey : fbKey_prod,
@@ -47,7 +61,11 @@ var ENV_prod:IENV = {
 }
 
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
-/*Objetos ENV a retornar segun configuracion*/
+/** 
+ * Contiene la funcion que devuelve la configuracion 
+ * de acuerdo al entorno seleccionado
+ * 
+*/
 export var ENV = function ():IENV {
 
     switch (ENV_SELECTOR) {

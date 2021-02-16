@@ -14,15 +14,26 @@ import jquery from "jquery";
 
 
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
-/*class Util_Components*/
-//contienen funcionalidades utilitarias para la creacion de componentes
+/** @info <hr>  
+ * *class*  
+ * contienen funcionalidades utilitarias para la 
+ * creacion de componentes
+ * ____
+ */
 export class Util_Components {
 
+    /** 
+     * `constructor()`  
+     * 
+     * ____
+     */
     constructor() {}
-    /*getHTMLelementWithId()*/
-    //
-    //Parametros:
-    //
+
+    /** 
+     * *public*  
+     * descrip...
+     * ____
+     */
     public getHTMLelementWithId(tagTlpComp:string):HTMLElement{
         let elem_TlpComp = document.getElementById(tagTlpComp);
         
@@ -33,10 +44,11 @@ export class Util_Components {
         return elem_TlpComp;
     }
 
-    /*getJQueryElementWithId()*/
-    //
-    //Parametros:
-    //
+    /** 
+     * *public*  
+     * descrip...
+     * ____
+     */
     public getJQueryElementWithId(tagTlpComp:string):JQuery<HTMLElement>{
         let elem_TlpComp = jquery(`#${tagTlpComp}`);
         
@@ -47,10 +59,15 @@ export class Util_Components {
         return elem_TlpComp;
     }
 
-    /*createIdForHTMLElement()*/
-    //
-    //Parametros:
-    //prefixed: un prefijo para el id
+    /** 
+     * *public*  
+     * 
+     * ____
+     * *Params:*  
+     * `prefixed:` : un prefijo para el id (normalmente 
+     * el tag que representa al componente)
+     * ____
+     */
     public createIdForHTMLElement(prefixed:string):string{
         let id_element = v4();
         id_element = id_element.replace(/-/g, ""); //quitar guiones
@@ -58,12 +75,20 @@ export class Util_Components {
         return id_element;
     }
 
-    /*copiarData()*/
-    //clonacion de objetos JSON a  diferentes niveles de profundidad
-    //CUIDADO CON EL STACK, NO PUEDE SER MUY PROFUNDO
-    //Parametros:
-    //data recibe un objeto de tipo  T (que se debe tipar al llamar 
-    //a este metodo) el cual puede ser objeto o array
+    /** 
+     * *public*  
+     * clonacion de objetos JSON o Arrays de JSONs a diferentes 
+     * niveles de profundidad
+     * 
+     * **IMPORTANTE:**  
+     * No debe ser un objeto con muchos noveles (No muy profundo) por 
+     * que crashea el stack
+     * 
+     * *Params:*  
+     * `Obj` : el objeto a clonar, tiene un T que se asume 
+     * implicitamente al enviar el parametro 
+     * ____
+     */
     public clonarObj<T>(Obj:T):T{
 
         let dataCopia:any;
@@ -90,12 +115,17 @@ export class Util_Components {
         return dataCopia as T;
     }    
 
-    /*convertStringToDiffCase()*/
-    //convierte un string a un tipo de case usado en programacion para 
-    //nombrar variables, metodos, clases, interfaces u objetos
-    //Argumentos:
-    //strBase: el string a modificar
-    //caseType: el tipo de case a convertir
+    /** 
+     * *public*  
+     * convierte un string a un formato de *case* usado en 
+     * programacion para nombrar variables, metodos, 
+     * clases, interfaces u objetos
+     * 
+     * *Param:*  
+     * `strBase` : el string a modificar.  
+     * `caseType` : el tipo de case a convertir.  
+     * ____
+     */
     public convertStringToDiffCase(strBase:string, caseType:"Snake" | "Kebab" | "Camel" | "Pascal"):string{
         
         if(!strBase || strBase == null || strBase == "" || typeof strBase != "string"){

@@ -11,16 +11,23 @@ import { ENV } from "../environment";
 import { fbKey_dev, fbKey_prod } from "./_firebase-key-config";
 
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
-//host de los servicios de la suite de firebase (incluyendo emuladores)
+/** 
+ * configuraciones de hosts dependiendo el  entorno de ejecucion,
+ * aqui se definen partes de la url Base, host para produccion y emuladores
+*/
 export var host = {
 
-    //path Project
-    //obtiene el proyecto directamente de la 
-    //configuracion secreta o lo establece como  ""
-    pathProject: `/${ENV().firebase.fbKey['projectId'] || ''}`,
+    /**Id del proyecto que se usa como path Project
+     * obtiene el proyecto directamente de la 
+     * configuracion secreta o lo establece como `""`
+     */
+    PROJECT_ID: `/${ENV().firebase.fbKey['projectId'] || ''}`,
 
-    //Ubicacion
-    locationProyect:"/us-central1",
+    /**Ubicacion del proyecto segun los servidores de Google */
+    GCP_REGION:"/us-central1",
+
+    /**Habilita la persistencia offline en aplicaciones web */
+    isEnablePersistenceInWeb : true,
 
     //remotos (de la suite de firebase)
     CloudFunctions : "",
@@ -36,41 +43,45 @@ export var host = {
 };
 
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
-/*class FirebaseConfig*/
-//configuracion inicial y UNICA de las apis del set de firebase que se 
-//usaran desde cloud Funtions tambien llamado ServerFN 
-//(Ejemplo: firestore, auth, las mismas cloudfunctions y demas)
-//IMPORTANTE:
-//clase configurada para singleton basico, NO se debe crear por medio de new
-//sino usar el metodo static getInstance()
+/** @info <hr>  
+ * *class singleton*  
+ * Configuracion inicial y UNICA de las apis del set de firebase que se  
+ * usaran desde cloud Funtions tambien llamado ServerFN
+ * (Ejemplo: firestore, auth, las mismas cloudfunctions y demas).  
+ * ____
+ */
 export class  FirebaseConfig{
 
-    //host de firebase segun apis (y segun si son emulados)
+    /**contien los diferentes hosts a utilizar */
     public host = host;
 
-    //app representacion de la siute de firebase
+    /**representacion de la api completa de la siute de firebase*/
     private app:firebase.app.App;
     
-    //propiedad que contiene la representacion del api 
-    //de Firestore ya configurada
+    /** propiedad que contiene la representacion del api 
+     * de Firestore ya configurada
+     */
     public app_FS:firebase.firestore.Firestore;
 
-    //propiedad que contiene la representacion del api 
-    //de Auth ya configurada
+    /** propiedad que contiene la representacion del api 
+     * de Auth ya configurada
+     */
     public app_Auth:firebase.auth.Auth;
 
-    //propiedad que contiene la representacion del api 
-    //de cloud Functions ya configurada
+    /** propiedad que contiene la representacion del api 
+     * de cloud Functions ya configurada 
+     */
     public app_Fn:firebase.functions.Functions;    
 
-    //propiedad UNICA para el singleton
+    /**almacen a la instancia *unica* de esta clase*/
     private static instance:FirebaseConfig;
     
-    //Importante:
-    //para un singleton en typescript NO se recomeinada
-    //declarar PROPIEDADES DE CLASE dentro del constructor 
-    //(argumentos de constructor si se pueden recibir) 
-    //que son enviados desde el metodo estatico getInstance()
+    /** 
+     * `constructor()`  
+     * se recomienda en singleton no decrarar 
+     * propiedades de clase en el constructor
+     * ____
+     */
     constructor() {
         //garantizar que NO se crearan configuraciones 
         //adicionales si ya existe una instancia
@@ -86,6 +97,12 @@ export class  FirebaseConfig{
             this.app_Auth = this.app.auth();
             this.app_Fn = firebase.functions();
 
+            //determinar si se desea persistencia offLine en web
+            if (host.isEnablePersistenceInWeb) {
+                this.app_FS.enablePersistence();
+                //como devuelve una promesa se puede cachear errores
+            }
+
             //detectar si se esta usando el emulador de cloud functions
             if (fbConfig.isLocalCloudFunctions) {
                 this.app_Fn.useFunctionsEmulator(this.host.Emu_CloudFunctions);                
@@ -99,8 +116,12 @@ export class  FirebaseConfig{
         }            
     }
 
-    /*getInstance()*/
-    //obtener una instancia UNICA (singleton)
+    /** 
+     * *static*    
+     * permite obtener la unica instancia de esta clase
+     * , si no existe la crea solo una vez
+     * ____
+     */
     public static getInstance():FirebaseConfig{
         if (!FirebaseConfig.instance) {
             FirebaseConfig.instance = new FirebaseConfig();
@@ -108,40 +129,39 @@ export class  FirebaseConfig{
         return FirebaseConfig.instance;
     }
 
-    /*firestoreReady()*/
-    //devuelve la promesa de cuando estará listo firestore
-    public firestoreReady():Promise<void>{
-        // return this.app_FS.enablePersistence();
-        return Promise.resolve();
-    }
-    
-
-    /*callFnWithOnCall()*/
-    // un llamado exclusivo que tiene la suite de firebase para llamar 
-    //CloudFunctions como si se estuviera usando el patron de diseño 
-    //proxy para funciones, la funcion declarada en cloud function 
-    //debe ser de tipo   onCall   , y solo debe ser usada para esperar 
-    //un JSON (no sive para otro tipo de respuestas), la ventaja que 
-    //tiene es que no hay que configurar cors y es mas rapida, solo 
-    //se necesita el nombre de la cloudFunction a llamar y NO se 
-    //necesita de clientes HTTP como axios
-    //es ideal para obtener la metadata
-    //
-    //Argumentos:
-    //nomFn: el nombre de la funcion IMPORTANTE: NO es el path, es el nombre
-    //
-    //ReqData: datos de request (configuracion de la peticion , 
-    //que se hará con algun tipo o interfaz de objeto personalizada)
-    //
-    //options: opcionales, parece que solo sirve para determinar 
-    //cuanto tiempo se debe esperar la respuesta
+    /** 
+     * `callFnWithOnCall()`  
+     * permite un llamado exclusivo que tiene la suite de 
+     * firebase para ejecutarCloudFunctions como si se 
+     * estuviera usando el patron de diseño proxy para 
+     * funciones. 
+     * La funcion declarada en cloudfunction debe ser de
+     *  tipo *onCall*, y solo debe ser usada para esperar 
+     * un JSON (no sive para otro tipo de respuestas), 
+     * la ventaja que tiene es que no hay que configurar 
+     * cors del lado de firebase ni clientes http (como 
+     * axiox para VUEjs) y es mas rapida, solo se necesita 
+     * el nombre de la cloudFunction a llamar.  
+     * Es ideal para obtener la metadata
+     * 
+     * *Param:*  
+     * `nomFn` : el nombre de la funcion recordar que **NO** 
+     * es el path, es el nombre con el que se declaró.  
+     * `ReqData` : datos de request (configuracion de la 
+     * peticion , que se hará con algun tipo o interfaz de 
+     * objeto personalizada).  
+     * `options` : opcionales, parece que solo sirve para 
+     * determinar cuanto tiempo se debe esperar la respuesta
+     * ____
+     * *Types:*    
+     * `TReqData` : representa la estructura de la data a 
+     * enviar con la peticion
+     * ____
+     */
     public callFnWithOnCall<TReqData>(nomFn:string, ReqData:TReqData, options?:firebase.functions.HttpsCallableOptions){
         const preCall = this.app_Fn.httpsCallable(nomFn, options);
         return preCall(ReqData);
     }
-
-    
-
 }
 
 

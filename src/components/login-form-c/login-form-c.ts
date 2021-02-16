@@ -11,24 +11,41 @@ import jquery from "jquery";
 //================================================================
 // importaciones de HTML y CSS (el HTML se debe importar con require)
 import "./login-form-c.scss";
+/**Contiene el template ya requerido desde el archivo HTML */
 var html_template = require("./login-form-c.html");
-//nombre referencial en estilo  KebabCase  para nombrar al componente
-//asi tambien se debe llamar los archivos referentes a este componente 
-//y su representacion en HTML y CSS
+/**
+ * nombre referencial en estilo *KebabCase* para nombrar 
+ * al componente; asi tambien se debe llamar los archivos 
+ * referentes a este componente y su representacion 
+ * en HTML y CSS
+ */
 var tag_component = "login-form-c";
 
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
-/*class PropsForComponent*/
-//clase refernecial Instanciable para administras las props externas 
-//a usar para este componente, aqui se deben colocar las propiedades
-//que contendra el objeto prop que el componente padre pase a este hijo
+/** @info <hr>  
+ * *class* 
+ * declara la estructura de propiedades `props` a 
+ * usar en este componente.  
+ * 
+ */
 class PropsForComponent {
 
     prop1 = "RRRRRRRRRRRRRRR"
 
 }
-
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
+/** @info <hr>  
+ * *class*  
+ * adminstra todo lo referente a la configuracion del 
+ * componente y renderizacion de vista
+ * 
+ * *Component* `LoginFormComponent`  
+ * componente para el logueo
+ * ____
+ * *extends:*  
+ * `Component`  
+ * ____
+ */
 export class LoginFormComponent extends Component<PropsForComponent>{
 
     public currentUser:firebase.User;
@@ -37,9 +54,18 @@ export class LoginFormComponent extends Component<PropsForComponent>{
 
     private auth:AuthController;
 
+    /** 
+     * `constructor()`  
+     * 
+     * *Param:*  
+     * `that_Vue` : contiene un contexto this de la 
+     * instancia actual del componente, es necesario 
+     * para diferenciar cuando se renderizan varios 
+     * componentes de un mismo tipo, ya que la instancia 
+     * se crea durante la renderizacion
+     * ____
+     */
     constructor(
-        //contiene un contexto this de la 
-        //instancia actual del componente
         that_Vue:CombinedVueInstance <Vue, unknown, unknown, unknown, Readonly<Record<string, any>>>
     ) {
         super(that_Vue);
@@ -79,25 +105,60 @@ export class LoginFormComponent extends Component<PropsForComponent>{
     }
 
     //================================================================
-    //estaticos de metadata para ser usado en otros componentes 
-    //(mas usados en componente padre de este componente)
+    /**estaticos de metadata para ser usado en otros componentes 
+     * (mas usados en componente padre de este componente)*/
+
+    /** *static*  
+     * etiqueta (en formato *KebabCase*) que identifica al componente 
+     */
     public static tag_component = tag_component;
+    /** *static*  
+     * nombre del objeto (en formato *Camelcase*) que contiene
+     * las `props` propiedades externas del componente  
+     * (que hacen las veces de @input de angular pero en VUEjs)
+     */
     public static nomProps = new Util_Components().convertStringToDiffCase(LoginFormComponent.tag_component, "Camel");
+    /** *static*  
+     * Obtiene una instancia vacia de la estructura de props 
+     * para este componente.  
+     * Se realiza por medio de este metodo estatico para no 
+     * tener que esportar la estructura, ya que el nombre con 
+     * que se declara la estructura (de tipo *class*) tiene el 
+     * mismo nombre para todos los componentes
+     */
     public static getPropsForComponent = ()=> new PropsForComponent();
     
-    /*getVueComponent()*/
-    //retorna el constructor de componente que se usará para el import
-    //para renderizar el componente en el padre 
+    /** 
+     * *public static*  
+     * retorna el *builder* de componente que se usará 
+     * para el import para renderizar el componente en 
+     * el padre.
+     * 
+     * Este *builder* contiene toda la configuracion requerida
+     * para renderizar el componente (*templates html+css*, 
+     * *data* (que es la clase que maneja los datos del 
+     * componente), los *hooks* del componente, las *props* y 
+     * demas configuraciones)
+     * 
+     * *Param:*  
+     * `isSingleton` determina si se quieren instancias singleton 
+     * de este componente, es util si se garantiza que solo 
+     * existe un componente de este tipo en cada vista, pero si
+     * se usan varios componentes de este tipo es mejor No 
+     * usar singleton  
+     * ____
+     */
     public static getVueComponent(isSingleton=false){
 
-        //contenedor si de piensa usar de forma singleton
+        /**contenedor de unica instancia si se usa 
+         * singleton para el componente*/
         let stg_data_comp:LoginFormComponent;
 
         return Vue.extend({
-            //cargar plantilla html
-            template:html_template,//require("./xxxcomponentxxx.html"),
+            /**cargar plantilla html*/
+            template:html_template,
             
-            //cargar la instancia que controlará al componente
+            /**cargar la instancia que controlará al componente*/
             data : function() {
                 
                 let data_comp:LoginFormComponent;
@@ -115,27 +176,29 @@ export class LoginFormComponent extends Component<PropsForComponent>{
                        
                 return data_comp;
             },
-            //declarar el nombre de la propiedad que recibe el objeto props
-            //no permite el tipado a Component:propComponent por eso se 
-            //usa solo en nombre de la propiedad
+            /** declarar el nombre de la propiedad que recibe el objeto 
+             * propsno permite el tipado a Component:propComponent 
+             * por eso se usa solo en nombre de la propiedad
+             */
             props:[LoginFormComponent.nomProps],
             
-            //algunos hooks pertenecientes al ciclo 
-            //de vida del componente (IMPORTANTE: no estan todos)
-            //
-            //se debe asignar contextos como that, recordar que las instancias de Vuejs son 
-            //un super objeto que contiene en sus propiedades la $data y 
-            //las $props, cuando se ejecuta funciones de nivel de instancia 
-            //como los hooks se puede recolectar la informacion de la intancia que los esta 
-            //llamando a traves de realizar contextos de this a that
+            /**algunos hooks pertenecientes al ciclo de vida del componente  
+             * **IMPORTANTE:** no estan todos
+             * Se debe asignar contextos como that, recordar que las instancias
+             * de Vuejs son un super objeto que contiene en sus propiedades la 
+             * $data y las $props, cuando se ejecuta funciones de nivel de 
+             * instancia como los hooks se puede recolectar la informacion 
+             * de la intancia que los esta llamando a traves de realizar 
+             * contextos de this a that 
+             */
 
-            //cuando se a creado en memoria el componente
+            /**cuando se a creado en memoria el componente*/
             created : function() {
                 const that = <CombinedVueInstance <Vue, unknown, unknown, unknown, Readonly<Record<string, any>>>><unknown>this;
                 const context_data = <LoginFormComponent>that.$data;
                 return;
             },
-            //cuando se a montado el HTML y CSS del componente
+            /**cuando se a montado el HTML y CSS del componente*/
             mounted : function(){
                 const that = <CombinedVueInstance <Vue, unknown, unknown, unknown, Readonly<Record<string, any>>>><unknown>this;
                 const context_data = <LoginFormComponent>that.$data;

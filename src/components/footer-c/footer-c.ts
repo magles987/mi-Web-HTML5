@@ -9,17 +9,22 @@ import jquery from "jquery";
 //================================================================
 // importaciones de HTML y CSS (el HTML se debe importar con require)
 import "./footer-c.scss";
+/**Contiene el template ya requerido desde el archivo HTML */
 var html_template = require("./footer-c.html");
-//nombre referencial en estilo  KebabCase  para nombrar al componente
-//asi tambien se debe llamar los archivos referentes a este componente 
-//y su representacion en HTML y CSS
+/**
+ * nombre referencial en estilo *KebabCase* para nombrar 
+ * al componente; asi tambien se debe llamar los archivos 
+ * referentes a este componente y su representacion 
+ * en HTML y CSS
+ */
 var tag_component = "footer-c";
 
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
-/*class PropsForComponent*/
-//clase refernecial Instanciable para administras las props externas 
-//a usar para este componente, aqui se deben colocar las propiedades
-//que contendra el objeto prop que el componente padre pase a este hijo
+/** @info <hr>  
+ * *class* 
+ * declara la estructura de propiedades `props` a 
+ * usar en este componente.  
+ */
 class PropsForComponent {
 
     //aqui las propiedades del objeto props a recibir 
@@ -27,10 +32,33 @@ class PropsForComponent {
 }
 
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
+/** @info <hr>  
+ * *class*  
+ * adminstra todo lo referente a la configuracion del 
+ * componente y renderizacion de vista
+ * 
+ * *Component* `FooterComponent`  
+ * componente prueba de un body test
+ * ____
+ * *extends:*  
+ * `Component`  
+ * ____
+ */
 export class FooterComponent extends Component<PropsForComponent>{
 
     public campo1:string;
 
+    /** 
+     * `constructor()`  
+     * 
+     * *Param:*  
+     * `that_Vue` : contiene un contexto this de la 
+     * instancia actual del componente, es necesario 
+     * para diferenciar cuando se renderizan varios 
+     * componentes de un mismo tipo, ya que la instancia 
+     * se crea durante la renderizacion
+     * ____
+     */
     constructor(
         //contiene un contexto this de la 
         //instancia actual del componente
@@ -51,15 +79,49 @@ export class FooterComponent extends Component<PropsForComponent>{
 
 
     //================================================================
-    //estaticos de metadata para ser usado en otros componentes 
-    //(mas usados en componente padre de este componente)
+    /**estaticos de metadata para ser usado en otros componentes 
+     * (mas usados en componente padre de este componente)*/
+
+    /** *static*  
+     * etiqueta (en formato *KebabCase*) que identifica al componente 
+     */
     public static tag_component = tag_component;
+    /** *static*  
+     * nombre del objeto (en formato *Camelcase*) que contiene
+     * las `props` propiedades externas del componente  
+     * (que hacen las veces de @input de angular pero en VUEjs)
+     */
     public static nomProps = new Util_Components().convertStringToDiffCase(FooterComponent.tag_component, "Camel");
+    /** *static*  
+     * Obtiene una instancia vacia de la estructura de props 
+     * para este componente.  
+     * Se realiza por medio de este metodo estatico para no 
+     * tener que esportar la estructura, ya que el nombre con 
+     * que se declara la estructura (de tipo *class*) tiene el 
+     * mismo nombre para todos los componentes
+     */
     public static getPropsForComponent = ()=> new PropsForComponent();
     
-    /*getVueComponent()*/
-    //retorna el constructor de componente que se usará para el import
-    //para renderizar el componente en el padre 
+    /** 
+     * *public static*  
+     * retorna el *builder* de componente que se usará 
+     * para el import para renderizar el componente en 
+     * el padre.
+     * 
+     * Este *builder* contiene toda la configuracion requerida
+     * para renderizar el componente (*templates html+css*, 
+     * *data* (que es la clase que maneja los datos del 
+     * componente), los *hooks* del componente, las *props* y 
+     * demas configuraciones)
+     * 
+     * *Param:*  
+     * `isSingleton` determina si se quieren instancias singleton 
+     * de este componente, es util si se garantiza que solo 
+     * existe un componente de este tipo en cada vista, pero si
+     * se usan varios componentes de este tipo es mejor No 
+     * usar singleton  
+     * ____
+     */
     public static getVueComponent(isSingleton=false){
 
         //contenedor si de piensa usar de forma singleton

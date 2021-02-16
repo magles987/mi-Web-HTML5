@@ -1,5 +1,25 @@
 <div class="body1">
     <h1>{{campo1}}</h1>
     <hr>
+    <ul v-for="p in $data.listProductos">
+        <li>
+            {{ p._id }} ---- {{ p.nombre }}
+        </li>
+    </ul>
+
+    <button v-on:click="$data.previousPage()">previousPage</button>
+    <button v-on:click="$data.nextPage()">nextPage</button>
+
     <button v-on:click="$data.clickeando()">clickme</button>
+
+    <hr>
+    <h1>FK prueba</h1>
+    <ul v-for="p in $data.list_FK_PrubaProd">
+        <li>
+            {{ p._id }} ---- {{ p.nombre }}
+        </li>
+    </ul>    
+    <button v-on:click="$data.previous_FK_Page()">previous_FK_Page</button>
+    <button v-on:click="$data.next_FK_Page()">next_FK_Page</button>    
+
 </div>
