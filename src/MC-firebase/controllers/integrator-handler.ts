@@ -1,5 +1,5 @@
 import { Fb_Controller } from "./fb-controller";
-import { IFieldMeta, ETypeField } from "./meta";
+import { IFieldMeta, EFieldType } from "./meta";
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
 
 /** @info <hr>  
@@ -73,7 +73,7 @@ export abstract class IntegratorHandler{
         
         /*si se recibió el objeto mapClon */
         if (mapClon && mapClon != null) {
-            if (fMeta.typeField == ETypeField.mapClon) {
+            if (fMeta.fieldType == EFieldType.objectOrMap) { //--posible error
                 doc[nomField] = mapClon;
             }            
             return Promise.resolve(doc);

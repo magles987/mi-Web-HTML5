@@ -119,6 +119,9 @@ export abstract class PopulatorHandler<TModel, TModelMeta>{
         /*Para cualquier cardinalidad se hace un cast de array */
         _pathDocsOr_ids = (Array.isArray(_pathDocsOr_ids)) ? _pathDocsOr_ids : [_pathDocsOr_ids];
 
+        //actualizar la cantidad de referencias a poblar
+        populatorFilter.populateSize = _pathDocsOr_ids.length;
+
         let modelCtrl = this.getInputCtrlByNomField(fieldMeta.nom);
         let paginator = modelCtrl.getModelPopulator().getPopulatePaginator();
 
@@ -126,7 +129,7 @@ export abstract class PopulatorHandler<TModel, TModelMeta>{
         toda la lista de _pathDocs o todo el 
         listado si no se pagína
         */
-        let extract_pathDocs = paginator.prePopulationPaginate(_pathDocsOr_ids, populatorFilter);        
+        let extract_pathDocs = paginator.configParamsPopulateForPaginate(_pathDocsOr_ids, populatorFilter);        
         let populationPromises = extract_pathDocs.map((_pathDocOr_id)=>{
             
             if (fieldMeta.structureFConfig.typeRef == "_id") {
@@ -146,10 +149,8 @@ export abstract class PopulatorHandler<TModel, TModelMeta>{
         .then((docs)=>{
 
             /**post paginar y Actualizar el elemento del mapa */
-            paginator.postPopulationPaginate(docs, populatorFilter);
+            docs = paginator.postPopulationPaginate(docs, populatorFilter);
 
-            /**filtra solo existentes */
-            docs = docs.filter((doc)=>(doc && doc != null));
             return docs as TModel[];
         });
     }    

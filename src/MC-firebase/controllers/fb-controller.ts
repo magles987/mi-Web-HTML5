@@ -229,14 +229,43 @@ export abstract class Fb_Controller<TModel,TIModel, TModelMeta>{
         filter:IFilter<TIModel>  
     ):firebase.firestore.Query<firebase.firestore.DocumentData>{
         
-        /**formatea el limite de acuerdo al tipo de paginacion*/
-        const fLimit = this.paginator.formatLimitPreQuery(filter.limit, filter.directionPaginate)
-        cursorQuery = cursorQuery.limit(fLimit); 
+        const configPre = this.paginator.configParamsPaginateForQuery(filter);
 
-        /**Configuracion de inicio de paginacion para la Query */
-        cursorQuery = ( this.paginator.typePagination != "none" ) ? 
-                    cursorQuery.startAfter(this.paginator.prePaginateForQuery(filter)) :
-                    cursorQuery;
+        /**seleccion de metodo limit a aplicar segun tipo 
+         * y direccion de paginacion*/
+
+        if (configPre.typeLimitMethod == "limit-method") {
+            cursorQuery = cursorQuery.limit(configPre.limit);
+        }
+        if (configPre.typeLimitMethod == "limitToLast-method") {
+            cursorQuery = cursorQuery.limitToLast(configPre.limit);
+        }
+
+        /**seleccion de metodo de paginacion (punto de inicio) */
+
+        /** permite paginacion directa excluyendo en la consulta el snapShotDoc 
+         * que se le pase como referencia (normalmente usado con metodo limit)*/        
+        if (configPre.initialMethod == "startAfter") {
+            cursorQuery = cursorQuery.startAfter(configPre.SSDForQuery)
+        }
+        
+        /** permite paginacion directa incluyendo en la consulta el snapShotDoc 
+         * que se le pase como referencia (normalmente usado con metodo limit)*/        
+        if (configPre.initialMethod == "startAt") {
+            cursorQuery = cursorQuery.startAt(configPre.SSDForQuery)
+        }        
+
+        /** permite paginacion reversible excluyendo en la consulta el snapShotDoc 
+         * que se le pase como referencia (normalmente usado con limitToLast)*/
+        if (configPre.initialMethod == "endBefore") {
+            cursorQuery = cursorQuery.endBefore(configPre.SSDForQuery)
+        }
+
+        /** permite paginacion reversible incluyendo en la consulta el snapShotDoc 
+         * que se le pase como referencia (normalmente usado con limitToLast)*/        
+        if (configPre.initialMethod == "endAt") {
+            cursorQuery = cursorQuery.endAt(configPre.SSDForQuery)
+        }        
 
         return cursorQuery;
     }
@@ -272,24 +301,17 @@ export abstract class Fb_Controller<TModel,TIModel, TModelMeta>{
             return cursorQuery.get()
             .then((docsData) => {
 
-                /**los docs a devolver */
-                let docsRes:TModel[] = []; 
-
                 /**Convertirlo a un array normal
                  * ya que en la documentacion se 
                  * trabaja como *iterable*
                  */
                 const snapDocs = docsData.docs;
 
-                /**Actualizar los snapShotDocuments para paginar */
-                this.paginator.postPaginatePostQuery(snapDocs, filter);
+                /**procesa los snapShotDocumens 
+                 * recibidos y organiza en paginas */
+                let docsRes = <TModel[]> this.paginator.postPaginatePostQuery(snapDocs, filter);
 
-                /**Convertir los snapshots a documentos del modelo */
-                docsRes = snapDocs.map((docSnap) => {
-                    const doc = docSnap.data() as TModel;
-                    //...aqui si se requiere procesar algo mas para cada doc
-                    return doc
-                });
+                //---aqui algo mas si se desea hacer con los documentos---
 
                 return docsRes;
             });
@@ -518,7 +540,7 @@ export abstract class Fb_Controller<TModel,TIModel, TModelMeta>{
         _pathBase:string, 
         ext_id:any, 
     ){
-        return () => Promise.resolve() //inicio de cadena de promesas (solo para comodidad de desmontar promesas qu eno hagan falta) 
+        return Promise.resolve() //inicio de cadena de promesas (solo para comodidad de desmontar promesas qu eno hagan falta) 
         //actualizar la metadata
         .then(() => this.updateModelMetada())
         //formatear el documento a crear
@@ -711,6 +733,44 @@ export abstract class Fb_Controller<TModel,TIModel, TModelMeta>{
      */
     public abstract getDefHookParamsInstance():IHookParams;
 
+    //================================================================
+    //test 
 
+    /** 
+     * *public*  
+     * descrip...
+     * ____
+     */
+    public createDocsTest(
+        numDocs?:number,
+        docsBase?:TModel[]
+    ){
+
+        let docs_test = <TModel[]>[];
+
+        if (Array.isArray(docsBase) && docsBase.length == 0) {
+            
+        }else{
+            numDocs = (!numDocs || numDocs == null) ?
+                      10 : numDocs;
+
+            const mm = <ModelMetadata><unknown> this.modelMeta;
+            for (let index = 0; index < numDocs; index++) {
+                docs_test.push(this.UtilCtrl.createEmptyModel(mm));
+                
+            }
+        }
+
+        const ih = <IHookParams>{}
+        const _p = "";
+        const e = null;
+
+        const pms = docs_test.map((dt) => {  
+            return this.create(dt, ih, _p, e);
+        });
+
+        return Promise.all(pms);
+    }
+    
 
 }

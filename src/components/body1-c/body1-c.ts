@@ -101,6 +101,7 @@ export class Body1Component extends Component<PropsForComponent>{
         this.listProductos = [];
         this.list_FK_PrubaProd = [];
 
+//this.mCtrl.createDocsTest();
         this.startPage();
         //----------
     }
@@ -118,32 +119,14 @@ export class Body1Component extends Component<PropsForComponent>{
         .then((docs) => {
             docs = (Array.isArray(docs)) ? docs : [docs];
             console.log(docs);
-            this.listProductos = this.mPaginator
-                                .concatDocsBeforeGetted(this.listProductos, docs);
+            this.listProductos = docs;
+
+            //this.start_FK_Page(); 
         })
 
-        
-
-        // this.mCtrl.fk_PruebaProd(this.mFilter, this.mHookP)
-        // .then((docs) => {
-        //     docs = (Array.isArray(docs)) ? docs : [docs];
-        //     console.log(docs);
-        //     this.listProductos = this.mPaginator
-        //                         .concatDocsBeforeGetted(this.listProductos, docs);
-            
-        //     this.start_FK_Page();              
-            
-        // });
-
-        // this.mPopulator.remove_id_Reference("Productos/171e0ce6925-907198e3c1f87bc1")
-        // .then()
     }
 
     public previousPage():void{
-
-        // if (pc.getCurrentPage() == 1) {
-        //     return // no haga paginacion
-        // }
 
         this.mFilter.directionPaginate = "previous";
 
@@ -151,8 +134,7 @@ export class Body1Component extends Component<PropsForComponent>{
             .then((docs) => {
                 docs = (Array.isArray(docs)) ? docs : [docs];
                 console.log(docs);
-                this.listProductos = this.mPaginator
-                                    .concatDocsBeforeGetted(this.listProductos, docs);
+                this.listProductos = docs;
             });
     }
 
@@ -164,8 +146,7 @@ export class Body1Component extends Component<PropsForComponent>{
             .then((docs) => {
                 docs = (Array.isArray(docs)) ? docs : [docs];
                 console.log(docs);
-                this.listProductos = this.mPaginator
-                                    .concatDocsBeforeGetted(this.listProductos, docs);
+                this.listProductos = docs;
             });
 
     }
@@ -189,11 +170,10 @@ export class Body1Component extends Component<PropsForComponent>{
 
         this.mPopulator.populateField(doc0.fk_PruebaProd, fMeta, fPFilter, fHookP)
         .then((fks:Producto[])=>{
-            this.list_FK_PrubaProd = fpPaginator.concatDocsBeforeGetted(this.list_FK_PrubaProd, fks);
-        
+            fks = (Array.isArray(fks)) ? fks : [fks];;
+            this.list_FK_PrubaProd = fks;
         })
     }
-
 
     
     public previous_FK_Page():void{
@@ -212,10 +192,12 @@ export class Body1Component extends Component<PropsForComponent>{
 
         fPFilter.isPopulate = true;
         fPFilter.directionPaginate = "previous";
+        fPFilter.limit = 2;
 
         this.mPopulator.populateField(doc0.fk_PruebaProd, fMeta, fPFilter, fHookP)
         .then((fks:Producto[])=>{
-            this.list_FK_PrubaProd = fpPaginator.concatDocsBeforeGetted(this.list_FK_PrubaProd, fks);
+            fks = (Array.isArray(fks)) ? fks : [fks];;
+            this.list_FK_PrubaProd = fks;
         })
     }
 
@@ -238,7 +220,8 @@ export class Body1Component extends Component<PropsForComponent>{
 
         this.mPopulator.populateField(doc0.fk_PruebaProd, fMeta, fPFilter, fHookP)
         .then((fks:Producto[])=>{
-            this.list_FK_PrubaProd = fpPaginator.concatDocsBeforeGetted(this.list_FK_PrubaProd, fks);
+            fks = (Array.isArray(fks)) ? fks : [fks];;
+            this.list_FK_PrubaProd = fks;
         })
 
     }    

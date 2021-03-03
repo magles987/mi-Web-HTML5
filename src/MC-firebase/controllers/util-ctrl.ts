@@ -328,4 +328,50 @@ export class UtilControllers {
         const maxFactor = numEqual + (Math.pow(10, (expF-1)));
         return maxFactor;
     }
+
+    /**
+     * permite eliminar *objetos* duplicados de un array en base 
+     * a una de sus propiedades que debe ser *UNICA* y preferiblemente 
+     * autoincremental (especialmente se usa algun tipo de _id)
+     * 
+     * *Param:*  
+     * `ObjsArray` : el array de objetos a depurar duplicados 
+     * `key_field` : **nombre** del campo (que cada objeto tiene) que sirve 
+     * como referencia o llave para eliminar los duplicados (se 
+     * usa mucho el _id)       
+     */
+    public deleteDuplicateForObjArray<T>(ObjsArray:T[], key_field:string):T[]{
+
+        ObjsArray = (Array.isArray(ObjsArray)) ? ObjsArray : [ObjsArray];
+
+        if (!key_field ||
+            key_field == null ||
+            key_field == "") {
+            return ObjsArray;
+        }
+
+        if(ObjsArray.length > 0){
+
+            let arrayReOrganizado:any[] = [];
+            let BufferConvertidor = {};
+
+            //tranforma cada objeto colocando como propiedad principal el
+            // campoRef de la siguiente manera:
+            //{"campoRef1":{...data}, "campoRefUnico2":{...data}}
+            //muy parecido a como usa firebase los _id como referencia de campo
+            //ya que en un objeto JSON nunca puede haber 2 campos con el mismo nombre
+            for(let i in ObjsArray) {
+                BufferConvertidor[ObjsArray[i][key_field]] = ObjsArray[i];
+             }
+
+             //reconstruye el array
+             for(let i in BufferConvertidor) {
+                arrayReOrganizado.push(BufferConvertidor[i]);
+             }
+              return arrayReOrganizado;
+
+        }else{
+            return ObjsArray;
+        }
+    }    
 }

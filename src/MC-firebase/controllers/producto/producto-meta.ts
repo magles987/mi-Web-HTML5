@@ -104,7 +104,7 @@ export class ProductoMeta extends ModelMetadata implements IProducto<any>{
         isArray : true,
         structureFConfig : {
             extModelMeta : "this",
-            typeRef : "_id",
+            typeRef : "_pathDoc",
             cardinality : "many",             
         },
         formatFieldMeta: {},

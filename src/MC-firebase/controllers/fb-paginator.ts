@@ -1,4 +1,5 @@
 import { IFilter, IPopulationFilter } from "./filter-handler";
+import { UtilControllers } from "./util-ctrl";
 
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
 /** @info <hr>  
@@ -17,54 +18,37 @@ import { IFilter, IPopulationFilter } from "./filter-handler";
  */
 export class Fb_Paginator {
 
-    /**
-     * contenedor de snapShotsDoc 
-     * que se usarana para paginar 
-     * con metodo startAfter(); 
-     * el primer elemento siempre es 
-     * `null`
+    /**Contine un backUp de los **snapShotsDocs** leidos, 
+     * en el tipo "classic" solo almacena el lote actual, 
+     * en los demas tipos acumula los lotes anteriores
+     *  y el actual
      */
-    private listSnapDocsStart: any[];
+    private bufferSSDocsGetted:firebase.firestore.QueryDocumentSnapshot<firebase.firestore.DocumentData>[]
 
-    /**util solo para mostras los ids 
-     * almacenados como snapDocsStart*/
-    private idsSSDocs:string[];
+    /**Permite determinar que ya no se 
+     * leyeron mas docs en la direccion "next"  */
+    private isLimitNext:boolean;
+    /**Permite determinar que ya no se 
+     * leyeron mas docs en la direccion "previous" */
+    private isLimitPrevious:boolean;
 
-    /**
-     * al realizar una consulta esta puede devolver 
-     * menos del limite de documentos que se tiene 
-     * asignado, esta propiedad almacena la cantidad 
-     * de faltantes de documentos que hubo despues de
-     * una consulta (si n hubo se asigna 0)
+    /** 
+     * contiene un backUp de los documentos leidos 
+     * en modo populate, en tipo "classic" solo 
+     * almacena el lote actuual.  
+     * **NO** son snapshotsDocs
+     * ____
      */
-    private numDocsMissing:number;
+    private bufferPopulateDocGetted: any[];
 
     /**
-     * la cantidad de documentos leidos y paginados 
-     * hasta el momento, es ideal para los tipos 
-     * de paginacion (*AccumulativeSimple* 
-     * *AccumulativeStrong*) tambien usada en poblar 
-     */
-    private currentNumDocsGetted:number;
-
-    /**
-     * la pagina actual en logica 1
+     * se encarga de llevar la pagina 
+     * actual en la paginacion del poblado
      */    
-    private currentPage:number;
-
-    /**
-     * el limite actual configurado por la 
-     * instancia de filtro
-     */    
-    private currentLimit:number;
-
-    /**
-     * las opciones de paginacion actuales 
-     * recibidas en el objeto de filtrado, 
-     * las opciones son: *none*, *start*, 
-     * *previous*, *next*
-     */    
-    private currentDirectionPaginate:"initial" |"previous" |"next"; 
+    private currentPopulatePage:number;
+    
+    /**contiene utilidades esclusivas para los controllers */
+    private util_ctrl:UtilControllers;
 
     /**
      * `constructor()`
@@ -102,7 +86,14 @@ export class Fb_Paginator {
          * para este modelCtrl
          * `classic` : permite mostrar los documentos 
          * de la pagina actual con opcion de paginacion 
-         * *previous* y *next* .  
+         * *previous* y *next* clasica y estatica (al llegar 
+         * al limite (next o previous) NO  se actualizan el 
+         * ultimo lote para ahorrar  lecturas) . 
+         * `classic-Acumulative`  : permite paginar de forma 
+         * clasica pero entregando virtualmente Docs Acumulados, 
+         * con la opcion de actualizar los docs del lote limite 
+         * (ya sea en direccion next o previous) en forma de 
+         * toggle (consume mas lecturas)
          * `AcumulativeSimple` : permite acumular todos los 
          * documentos leidos hasta el momento (de la
          * misma Query) e ir concatenando las nuevas
@@ -118,20 +109,31 @@ export class Fb_Paginator {
          * generar una cantidad exponencial de lecturas, se 
          * usan las opciones de paginacion *next* para solicitar 
          * los demas documentos y *previous* para reiniciar 
-         * el lote
+         * el lote.  
+         * 
+         * **Importante** el comportamiento de los tipos de paginacion
+         *  puede variar para populate
          */
-        private _typePagination: "none" | "classic" | "AccumulativeSimple" | "AccumulativeStrong" = "classic",       
+        private _typePagination: "none" |
+                                 "classic" |
+                                 "classic-Acumulative" |
+                                 "AccumulativeSimple" |
+                                 "AccumulativeStrong" 
+                                = "classic",       
     ) {        
         this.resetPaginatorData();
-        this.currentNumDocsGetted = 0;
-        this.currentLimit = 0;
+        this.util_ctrl = new UtilControllers();
     }
 
     /** 
      * getter de tipo de paginacion
      * ____
      */
-    public get typePagination(): "none" | "classic" | "AccumulativeSimple" | "AccumulativeStrong" {
+    public get typePagination(): "none" |
+                                "classic" |
+                                "classic-Acumulative" |
+                                "AccumulativeSimple" |
+                                "AccumulativeStrong" {
         return this._typePagination;
     }
     /** 
@@ -141,11 +143,17 @@ export class Fb_Paginator {
      * currenDirectionPaginatio y currentPage)
      * ____
      */    
-    public set typePagination(type: "none" | "classic" | "AccumulativeSimple" | "AccumulativeStrong") {
+    public set typePagination(
+        type: "none" |
+            "classic" |
+            "classic-Acumulative" |
+            "AccumulativeSimple" |
+            "AccumulativeStrong") {
+
         this.resetPaginatorData();
+
         this._typePagination = type;
     }
-
 
     /** 
      * *private*  
@@ -154,294 +162,388 @@ export class Fb_Paginator {
      * ____
      */
     private resetPaginatorData():void{
-        this.listSnapDocsStart = [null];
-        this.idsSSDocs = [""];
-        this.currentPage = 1;
-        this.currentDirectionPaginate = "initial";
-        this.numDocsMissing = 0;
+
+        this.bufferSSDocsGetted = [];
+        this.isLimitNext = false;
+        this.isLimitPrevious = false;
+
+        this.bufferPopulateDocGetted = [];
+        this.currentPopulatePage = 1;
+
         return;
     }
 
     /** 
      * *public*  
-     * selecciona y devuelve el *SnapShotDocument* a 
-     * usarlo como start para la paginacion del 
-     * *cursorQuery*
+     * configura parametros esenciales de limite y SnapShotDoc 
+     * referencial para la paginacion para la construccion de 
+     * un Query de firestore, retorna un objeto con dicha 
+     * configuracion lista para implementar en la query. 
      * 
      * *Param:*  
      * `filter` : objeto con la configuracion del filtro 
      * a usar en la consulta.  
      * ____
      */
-    public prePaginateForQuery(        
+    public configParamsPaginateForQuery(        
         filter:IFilter<unknown>        
-    ):any{
+    ){
 
-        this.currentDirectionPaginate = filter.directionPaginate; 
+        //objeto respuesta preconfigurado
+        let configRes = {
+            
+            limit : filter.limit,
+            
+            /**metodos de limite para Firestore
+             * (normalmente limitToLast se usa para 
+             * reversibles) */
+            typeLimitMethod : "limit-method" as "limit-method" | "limitToLast-method",
+            
+            /**metodo de inicio de paginacion para Fir
+             * none: ninguno NO SE PAGINA con ningun metodo
+             * startAfter : paginacion directa excluyente
+             * startAt : paginacion directa incluyente
+             * endBefore : paginacion reversible excluyente
+             * endAt : paginacion reversible incluyente
+             */
+            initialMethod : "none" as "none" |"startAfter" | "endBefore" | "endAt" | "startAt",
+            
+            /**contendrá el snapshotDocument base para realizar 
+             * la consulta, es el punto de partida para la 
+             * paginacion
+             */            
+            SSDForQuery : null as any
+        
+        };
 
-        /** indice del SnapShotdocument a configurar en el cursor*/
-        let idxSSDoc = 0;
+        //utilitarias
+        const SSDBuff_length = this.bufferSSDocsGetted.length;
+        const isSSDBuff = SSDBuff_length > 0;
+        let firstSSDBuff = null;
+        let lastSSDBuff = null;   
+        const modulusSSD = (this.bufferSSDocsGetted.length % filter.limit); 
 
         switch (this.typePagination) {
-                  
+            /**no tiene paginacion ni limite para configurar, se usa el predefinido */
+            case "none": 
+                configRes.initialMethod = "none";               
+                break;
+
+            /**para classic se varia los metodos de referencia entre startAfter, startAt y 
+             * endbefore; tambien se escoje el metodo para limitar los documentos de acuerdo 
+             * a la direccion y al snapShotDoc referencial*/
             case "classic":
 
-                /**la opcion `"start"` siempre se pagina desde 
-                 * el inicial representado como `null`*/
-                if (this.currentDirectionPaginate == "initial") {
-                    idxSSDoc = 0; //seleccionará el null
+                if (isSSDBuff) {
+                    firstSSDBuff = this.bufferSSDocsGetted[0]; 
+                    lastSSDBuff =  this.bufferSSDocsGetted[SSDBuff_length -1];            
                 }
-                /**la opcion `"previous"` asigna el indice del 
-                 * contenedor, recordar que lo minimo del 
-                 * contenedor deben tener 2 elementos*/                            
-                if (this.currentDirectionPaginate == "previous") {
-                    idxSSDoc = (this.listSnapDocsStart.length > 2) ? 
-                                this.listSnapDocsStart.length -3 : 0;
+
+                if (filter.directionPaginate == "initial") {
+
+                    configRes.typeLimitMethod = "limit-method";
+                    configRes.initialMethod = "startAfter";
+
+                    configRes.SSDForQuery = null;
+                }            
+
+                if (filter.directionPaginate == "previous") {
+                    
+                    configRes.typeLimitMethod = "limitToLast-method";                    
+
+                    configRes.initialMethod = "endBefore";
+                    configRes.SSDForQuery = firstSSDBuff;                    
+
                 }
-                /**la opcion `"next"` asigna el ultimo indice*/ 
-                if (this.currentDirectionPaginate == "next") {
-                   idxSSDoc = this.listSnapDocsStart.length -1;
+
+                if (filter.directionPaginate == "next") {
+
+                    configRes.typeLimitMethod = "limit-method";
+
+                    configRes.initialMethod = "startAfter";
+                    configRes.SSDForQuery = lastSSDBuff;
+                }
+
+                break;  
+
+            /**para classic-Acumulative se varia los metodos de referencia entre startAfter, startAt y 
+             * endbefore; tambien se escoje el metodo para limitar los documentos de acuerdo 
+             * a la direccion y al snapShotDoc referencial*/
+            case "classic-Acumulative":
+
+                if (isSSDBuff) {
+                    const idxF = (modulusSSD > 0) ?
+                                SSDBuff_length - modulusSSD :
+                                SSDBuff_length - filter.limit ;          
+                    firstSSDBuff = this.bufferSSDocsGetted[idxF]; 
+                    lastSSDBuff =  this.bufferSSDocsGetted[SSDBuff_length -1];  
                 }  
+
+                if (filter.directionPaginate == "initial") {
+
+                    configRes.typeLimitMethod = "limit-method";
+                    configRes.initialMethod = "startAfter";
+
+                    configRes.SSDForQuery = null;
+                }            
+
+                if (filter.directionPaginate == "previous") {
+                    
+                    configRes.typeLimitMethod = "limitToLast-method"; 
+
+                    if (this.isLimitPrevious == false) {
+                        configRes.initialMethod = "endBefore";       
+                        configRes.SSDForQuery = firstSSDBuff;                                 
+                    }else{
+                        configRes.initialMethod = "endAt";       
+                        configRes.SSDForQuery = lastSSDBuff;    
+                    }
+           
+                }
+
+                if (filter.directionPaginate == "next") {
+
+                    configRes.typeLimitMethod = "limit-method";
+
+                    if (this.isLimitNext == false) {
+                        configRes.initialMethod = "startAfter";       
+                        configRes.SSDForQuery = lastSSDBuff;                                 
+                    }else{
+                        configRes.initialMethod = "startAt";       
+                        configRes.SSDForQuery = firstSSDBuff;    
+                    }               
+                }
+
+                break;                 
+
+            /**para AccumulativeSimple requiere solo la direccion next y startAfter*/
+            case "AccumulativeSimple": 
+                
+                configRes.typeLimitMethod = "limit-method";
+                configRes.initialMethod = "startAfter";   
+                
+                if (filter.directionPaginate == "initial") {
+                    configRes.SSDForQuery = null;
+                }
+                if (filter.directionPaginate == "previous") {
+                    configRes.SSDForQuery = null;
+                }
+                if (filter.directionPaginate == "next") {
+                    configRes.SSDForQuery = lastSSDBuff;
+                }
+
                 break;
 
-            /** en las opciones acumulativas, los indices se 
-             * comportan igual y el contenedor de listSnapDocsStart
-             * solo almacenará 1 elemento */  
-            case "AccumulativeSimple": 
-            case "AccumulativeStrong":  
+            /**para AccumulativeStrong requiere solo la direccion 
+             * next y startAfter; esta requiere recalcular el limite 
+             * para que sea dinamico, relativo y acumulativo a la
+             * ultima lectura*/
+            case "AccumulativeStrong":
+                    
+                const bufferDDSLength = this.bufferSSDocsGetted.length;
+                const pageRelative = Math.ceil(this.bufferSSDocsGetted.length / filter.limit);
+
+                configRes.limit = (bufferDDSLength > 0 && 
+                            filter.directionPaginate != "previous") ? 
+                            (pageRelative + 1) * filter.limit :
+                            filter.limit;
                 
-                if (this.currentDirectionPaginate == "initial" ||
-                     this.currentDirectionPaginate == "next" 
-                ) {
-                    /**se escoge el index del UNICO elemento 
-                     * que debe tener el contenedor*/
-                    idxSSDoc = 0;
-                }                 
-                if (this.currentDirectionPaginate == "previous") {
-                    /**el metodo se devuelve aqui ya que el null 
-                     * retornado puede NO estar asignado a 
-                     * listSnapDocsStart y mientras no se halla 
-                     * concretado la consulta las propiedades como
-                     *  listSnapDocsStart no deben ser modificadas
-                     * */
-                    return null
-                }  
-                break;
-            
-            case "none":                
+                configRes.typeLimitMethod = "limit-method"; 
+                configRes.initialMethod = "startAfter";
+
+                configRes.SSDForQuery = null;
+
+                break;                       
+        
             default:
-                /**se asigna a su estado inicial */
-                idxSSDoc = 0;
                 break;
-  
         }
-        const SSDoc = this.listSnapDocsStart[idxSSDoc];
-        return SSDoc;
+
+        return configRes
+
     }
 
     /** 
      * *public*  
-     * gestiona el contenedor de *listSnapDocsStart* del 
-     * manejador de paginacion y actualiza el index, una 
-     * vez ya realizada la lectura de documentos
+     * gestionado como si fuese un hook post lectura, recibe el array de 
+     * snapShotsDocs devuelto por firestore y procesa y ordena la paginacion 
+     * entregando al final los documentos leidos sin metadata, tambien deja 
+     * una copia en el buffer de los snapShotsDocs recividos
      * 
      * *Param:*  
-     * `snapShotDocsGetted` : los ultimos Documentos 
-     * obtenidos de la ultima Consulta realizada.  
+     * `snapShotDocsGetted` : los ultimos snapShotDocs 
+     * obtenidos de la ultima Consulta realizada para procesar.  
      * `filter` : el filtro usado en la ultima consulta
      * ____
      */
-    public postPaginatePostQuery(
-        snapShotDocsGetted: any[], 
+    public postPaginatePostQuery<TModel>(
+        snapShotDocsGetted: firebase.firestore.QueryDocumentSnapshot<firebase.firestore.DocumentData>[], //any[],
         filter: IFilter<unknown>
-    ) {
+    ):TModel[] {
 
-        this.currentDirectionPaginate = filter.directionPaginate;
-        this.currentLimit = filter.limit;
+        snapShotDocsGetted = (Array.isArray(snapShotDocsGetted)) ? snapShotDocsGetted : [snapShotDocsGetted];
+        
+        const bufferDocsSize = this.bufferSSDocsGetted.length;
+        const SSD_length = snapShotDocsGetted.length;
+        const isSSDocs = (SSD_length > 0);
 
-        let SSD_length = snapShotDocsGetted.length;
-        const lastSSDoc = (SSD_length > 0) ?
-            snapShotDocsGetted[SSD_length - 1] :
-            null;
-
+        //los documentos recibidos ya procesados por el postPaginate
+        let docRes:TModel[] = [];
 
         switch (this.typePagination) {
 
+            /**Classic al llegar al limite en cualquier direccion 
+             * (next o previous) esta seguira recargando los docs 
+             * en busca de actualizaciones o de nuevos, pero siempre
+             * mostrando los ultimos reales leidos */
             case "classic":
-                /**la opcion `"start"` resetea las propiedades 
-                 * del paginador y determina (si se leyeron 
-                 * documentos) agregar el ultimo *snapShotDoc* 
-                 * al contenedor, actualiza la propiedad de
-                 *  *numDocsMissing*
-                 */
-                if (this.currentDirectionPaginate == "initial") {
+
+                if (filter.directionPaginate == "initial") {                    
                     this.resetPaginatorData();
-                    if (SSD_length > 0) {
-                        this.listSnapDocsStart.push(lastSSDoc);
-                        this.idsSSDocs.push(lastSSDoc["id"]);
-                    }
-                    this.numDocsMissing = this.currentLimit - SSD_length;
-                    return;
                 }
 
-                /**la opcion `"previous"` elimina el ultimo 
-                 * *snapShotDocument* siempre y cuando la lista
-                 * *listSnapDocsStart* contenga al menos 2 elementos
-                 * `[null, {SSDoc}]` y acutualiza los faltantes
-                 */
-                if (this.currentDirectionPaginate == "previous") {
-
-                    if (this.listSnapDocsStart.length > 2) {
-                        this.listSnapDocsStart.pop();
-                        this.idsSSDocs.pop();
-                        
-                        this.currentPage--;
-
-                    }
-                    /*se actualiza el ultimo elemento del contenedor siempre 
-                    y cuando este no sea el elemento de index 0 */
-                    if (SSD_length > 0 ) {
-                        this.listSnapDocsStart[this.listSnapDocsStart.length - 1] = lastSSDoc;   
-                        this.idsSSDocs[this.idsSSDocs.length - 1] = lastSSDoc["id"];
-                    }
-
-                    this.numDocsMissing = this.currentLimit - SSD_length;
-                    return;
+                if (filter.directionPaginate == "previous") {
+                    this.isLimitPrevious = (isSSDocs == false || SSD_length < filter.limit)
+                    this.isLimitNext = false;
                 }
-                /**la opcion `"next"` puede tener diferentes 
-                 * estados dependiendo de si se obtubieron 
-                 * docs en la consulta, si la consulta 
-                 * anterior a esta estaban sin faltantes, 
-                 * si los Doc leidos son menos qu los faltantes 
-                 * y viceversa
-                 */
-                if (this.currentDirectionPaginate == "next") {
 
-                    if (SSD_length > 0) {
-
-                        if (this.numDocsMissing == 0 ) {          
-
-                             /**Agrega nuevo SSDoc referencial a la lista*/
-                             this.listSnapDocsStart.push(lastSSDoc);
-                             this.idsSSDocs.push(lastSSDoc["id"]);
-                             
-                             this.numDocsMissing = this.currentLimit - SSD_length;
-                             this.currentPage++;
-                             return
-                     
-                        }
-
-                        if (SSD_length <= this.numDocsMissing) {
-                            /**Actualiza el ultimo SSDoc referencial 
-                             * de la lista, pero no lo agrega como nuevo*/
-                            this.listSnapDocsStart[this.listSnapDocsStart.length - 1] = lastSSDoc;
-                            this.idsSSDocs[this.idsSSDocs.length - 1] = lastSSDoc["id"];
-
-                            this.numDocsMissing = this.numDocsMissing - SSD_length;
-                            return;
-                        }                        
-
-                        if (SSD_length > this.numDocsMissing) {
-                            /**Actualiza el ultimo SSDoc referencial a la  
-                             * lista en el punto exacto (idxF) donde se  
-                             * completan los faltantes y se agrega el 
-                             * ultimo SSDoc del exceso*/
-                            const idxF = this.numDocsMissing - 1;
-                            this.listSnapDocsStart[this.listSnapDocsStart.length - 1] = snapShotDocsGetted[idxF];
-                            this.idsSSDocs[this.idsSSDocs.length - 1] = snapShotDocsGetted[idxF]["id"];
-                            this.listSnapDocsStart.push(lastSSDoc);
-                            this.idsSSDocs.push(lastSSDoc["id"]);
-                            
-                            this.currentPage++;
-                            this.numDocsMissing = this.currentLimit - (SSD_length - this.numDocsMissing);
-                            return;
-                        }                      
-
-                    }
-                    return;
-                }    
-                return;              
-                break;
+                if (filter.directionPaginate == "next") {               
+                    this.isLimitPrevious = false;
+                    this.isLimitNext = (isSSDocs == false || SSD_length < filter.limit);                    
+                }        
                 
-            case "AccumulativeSimple":
-                /**la opcion `"start"` reinician las propiedades
-                 *  del paginator y asignan el ultimo SSDoc
-                 *  al contenedor (si la consulta 
-                 * devolvió resultados)
-                 */               
-                if (this.currentDirectionPaginate == "initial" ) {
-                    this.resetPaginatorData();
-                    if (SSD_length > 0) {
-                        this.listSnapDocsStart[0] = lastSSDoc;
-                        this.idsSSDocs[0] = lastSSDoc["id"];                        
-                    }
-                    this.currentNumDocsGetted = SSD_length;
-                    return;                    
+                /**no permite que al llegar al limite (sea en next o previous) se muestre un alista vacia*/
+                if (isSSDocs) {
+                    this.bufferSSDocsGetted = snapShotDocsGetted;
                 }
-                /**la opcion `"previous"` reinician las 
-                 * propiedades del paginator y asignan el 
-                 * ultimo SSDoc al contenedor (si la consulta 
-                 * devolvió resultados)
-                 */                 
-                if (this.currentDirectionPaginate == "previous") {
-                    this.resetPaginatorData();
-                    if (SSD_length > 0) {
-                        this.listSnapDocsStart[0] = lastSSDoc;
-                        this.idsSSDocs[0] = lastSSDoc["id"];
-                    }
-                    this.currentNumDocsGetted = SSD_length;                   
-                    return;
-                }
-                /**la opcion `"next"` si se recibieron resultados 
-                 * actualiza las propiedades del paginator 
-                 * (incluyendo la pagina actual)
-                 */                 
-                if ( this.currentDirectionPaginate == "next" ) {
+                break;                
 
-                    if (SSD_length > 0) {                        
-                        this.listSnapDocsStart[0] = lastSSDoc;
-                        this.idsSSDocs[0] = lastSSDoc["id"];
-                    }
+            /**classic-Acumulative usando el buffer en caso de eliminaciones o cambios de 
+             * pagina, estos pueden provocar que se dupliquen falsamente los documentos, 
+             * por lo tanto se busca eliminar duplicados y recargar los cambios de los 
+             * documentos que esten al limite de cualquier direccion (next o previous), 
+             * IMPORTANTE: no se puede actualizar docs en paginas intermedias o que en su limite 
+             * esten completos (que su tamanno sea igual a filter.limit) */
+            case "classic-Acumulative":
+
+                if (filter.directionPaginate == "initial") {
                     
-                    this.currentNumDocsGetted += SSD_length;                        
-                    this.currentPage = Math.ceil(this.currentNumDocsGetted / this.currentLimit);                                            
-                                        
-                    return;                    
-                }                
-                return;
-                break;     
-
-            case "AccumulativeStrong":
-
-                if (this.currentDirectionPaginate == "initial" ) {
                     this.resetPaginatorData();
-                    this.currentNumDocsGetted = SSD_length;                    
-                    return;                    
+                    this.bufferSSDocsGetted = snapShotDocsGetted;
                 }
 
-                if (this.currentDirectionPaginate == "previous") {
-                    this.resetPaginatorData();
-                    this.currentNumDocsGetted = SSD_length;                    
-                    return;
+                if (filter.directionPaginate == "previous") {
+                    const _id_SSDoc = snapShotDocsGetted[0].id;
+                    if (isSSDocs) {
+                        let initialCutB = (this.bufferSSDocsGetted.findIndex((B_SSDoc) => B_SSDoc.id == _id_SSDoc))
+    
+                        if(initialCutB >= 0 ){
+                            this.bufferSSDocsGetted.splice(initialCutB); 
+                        }                        
+                    }
+                                             
+                    this.bufferSSDocsGetted = this.bufferSSDocsGetted.concat(snapShotDocsGetted);
+                    this.bufferSSDocsGetted = this.util_ctrl.deleteDuplicateForObjArray(this.bufferSSDocsGetted, "id")
+                                                              .filter((SSDoc) =>SSDoc.exists);   
+                    
+                    /**Al llegar al tope esta se activa la bandera en modo 
+                     * toggle para que se intercale la verificacion de 
+                     * nuevos docs y actualizacion del ultimo lote */
+                    this.isLimitPrevious = (isSSDocs == false || SSD_length < filter.limit) ?
+                                            !this.isLimitPrevious :
+                                            false;
+                    this.isLimitNext = false;
+
                 }
 
-                if (this.currentDirectionPaginate == "next" ) {
+                if (filter.directionPaginate == "next") {
 
-                    this.currentNumDocsGetted = SSD_length;
-                    this.currentPage = Math.ceil(this.currentNumDocsGetted / this.currentLimit);       
+                    const modulusBuff = (bufferDocsSize % filter.limit);
+                    const initialCutB = (modulusBuff > 0) ?
+                                            -modulusBuff :
+                                            -filter.limit;
+                    let extractBuffDocs = this.bufferSSDocsGetted.splice(initialCutB);
+                    extractBuffDocs = extractBuffDocs.concat(snapShotDocsGetted);
+                    this.bufferSSDocsGetted = this.bufferSSDocsGetted.concat(extractBuffDocs); 
+                    this.bufferSSDocsGetted = this.util_ctrl.deleteDuplicateForObjArray(this.bufferSSDocsGetted, "id") //IMPORTANTE: se usa "id" y no "_id"
+                                                            .filter((SSDoc) =>SSDoc.exists); 
+                    
+                    /**Al llegar al tope esta se activa la bandera en modo 
+                     * toggle para que se intercale la verificacion de 
+                     * nuevos docs y actualizacion del ultimo lote */
+                    this.isLimitPrevious = false;
+                    this.isLimitNext = (isSSDocs == false || SSD_length < filter.limit) ?
+                                        !this.isLimitNext :
+                                        false;   
 
-                    return;                    
+                }              
+
+                break;
+
+            /**AcumulativeSimple concatena y elemina duplicados 
+             * tomando en cuenta solo la direccion next, para 
+             * previous se reinicias el acumulador */                                
+            case "AccumulativeSimple":
+          
+                if (filter.directionPaginate == "initial" ) {
+                    
+                    this.resetPaginatorData();            
+                }
+               
+                if (filter.directionPaginate == "previous") {
+                    
+                    this.resetPaginatorData();     
+
+                    this.isLimitPrevious = true;
+                    this.isLimitNext = false;    
+                }
+                
+                if (filter.directionPaginate == "next" ) {
+                    this.isLimitPrevious = false;
+                    this.isLimitNext = (isSSDocs == false || SSD_length < filter.limit);  
                 }            
 
-                return;
+                this.bufferSSDocsGetted = this.bufferSSDocsGetted.concat(snapShotDocsGetted);
+                this.bufferSSDocsGetted = this.util_ctrl.deleteDuplicateForObjArray(this.bufferSSDocsGetted, "ïd"); //IMPORTANTE: se usa "id" y no "_id"
+                docRes = this.bufferSSDocsGetted.map((SSDoc) => SSDoc.data() as TModel);            
+
+                break;     
+
+            /**AcumulativeStrong llama todos los documentos en cada 
+             * consulta y su acumulacion se hace desde firestore, 
+             * es la que mas consumo de lecturas produce (y la que 
+             * mas costos genera) */                   
+            case "AccumulativeStrong":
+
+                if (filter.directionPaginate == "initial" ) {
+                    this.resetPaginatorData();                                 
+                }
+
+                if (filter.directionPaginate == "previous") {
+                    this.resetPaginatorData();   
+                    this.isLimitPrevious = true;
+                    this.isLimitNext = false;                                
+                }
+
+                if (filter.directionPaginate == "next" ) {
+                    this.isLimitPrevious = false;
+                    this.isLimitNext = (isSSDocs == false || SSD_length < filter.limit); 
+                }                    
+
+                this.bufferSSDocsGetted = this.bufferSSDocsGetted.concat(snapShotDocsGetted);
                 break;
 
             case "none":
             default:
                 this.resetPaginatorData();
                 break;
-        }      
-        return;
+        }  
+
+        /**extrae los Docs sin metadata de los 
+         * snapShotDocs ya organizados y paginados 
+         * y los retorna*/
+        docRes = this.bufferSSDocsGetted.map((SSDoc) => SSDoc.data() as TModel); 
+        return docRes;
     }
 
     /** 
@@ -456,95 +558,123 @@ export class Fb_Paginator {
      * modo poblar del modelo utilizado
      * ____
      */
-    public prePopulationPaginate(
+    public configParamsPopulateForPaginate(
         _pathDocsOr_ids:string[], 
         populatorFilter:IPopulationFilter<unknown>,
-    ):string[]{
-        
-        //seleccionados
-        let extract_result:string[] = [];        
+    ):string[]{  
 
-        this.currentDirectionPaginate = populatorFilter.directionPaginate;  
-        this.currentLimit = populatorFilter.limit;
-
+        const populate_length = populatorFilter.populateSize; 
+        const bufferDocsSize = this.bufferPopulateDocGetted.length;
 
         /**indices de extraccion de _pathDocs */
         let idx_start = 0;
         let idx_end = 0;    
 
+        //seleccionados
+        let extract_result:string[] = [];      
+
         switch (this.typePagination) {
             
             case "classic":
                 
-                if (this.currentDirectionPaginate == "initial") {
-                    idx_end = (_pathDocsOr_ids.length > (this.currentPage * this.currentLimit)) ? 
-                                this.currentPage * this.currentLimit : _pathDocsOr_ids.length; 
+                if (populatorFilter.directionPaginate == "initial") {
+                    idx_end = (populate_length > populatorFilter.limit) ? 
+                                 populatorFilter.limit : 
+                                 populate_length; 
                 }
         
-                if (this.currentDirectionPaginate == "previous") {
-                    if (this.currentPage > 1) {
-                        idx_start = (this.currentPage - 2) * this.currentLimit;
-                        idx_end = (this.currentPage - 1) * this.currentLimit;                
+                if (populatorFilter.directionPaginate == "previous") {
+                    if (this.currentPopulatePage > 1) {
+                        idx_start = (this.currentPopulatePage - 2) * populatorFilter.limit;
+                        idx_end = (this.currentPopulatePage - 1) * populatorFilter.limit;                
                     }else{
-                        idx_end = (_pathDocsOr_ids.length > (this.currentPage * this.currentLimit)) ? 
-                        this.currentPage * this.currentLimit : _pathDocsOr_ids.length;
+                        if (this.isLimitPrevious == false) {
+                            idx_end = (populate_length > (this.currentPopulatePage * populatorFilter.limit)) ? 
+                            this.currentPopulatePage * populatorFilter.limit : populate_length;                            
+                        }
                     }                       
                 }
         
-                if (this.currentDirectionPaginate == "next") {
-                    idx_start = this.currentLimit * this.currentPage;
-                    idx_end = (_pathDocsOr_ids.length > ((this.currentPage + 1) * this.currentLimit)) ? 
-                              (this.currentPage + 1) * this.currentLimit : _pathDocsOr_ids.length; 
+                if (populatorFilter.directionPaginate == "next") {
+                    if (this.isLimitNext == false) {
+                        idx_start = populatorFilter.limit * this.currentPopulatePage;
+                        idx_end = (populate_length > ((this.currentPopulatePage + 1) * populatorFilter.limit)) ? 
+                                  (this.currentPopulatePage + 1) * populatorFilter.limit : populate_length;                             
+                    }
                 } 
 
-                extract_result = _pathDocsOr_ids.slice(idx_start, idx_end);                 
                 break;
+
+            case "classic-Acumulative":  
+                if (populatorFilter.directionPaginate == "initial") {
+                    idx_end = (populate_length > populatorFilter.limit) ? 
+                                populatorFilter.limit : 
+                                populate_length; 
+                }
+        
+                if (populatorFilter.directionPaginate == "previous") {
+                    if (this.currentPopulatePage > 1) {
+                        idx_start = (this.currentPopulatePage - 2) * populatorFilter.limit;
+                        idx_end = (this.currentPopulatePage - 1) * populatorFilter.limit;                
+                    }else{
+                        idx_end = (populate_length > (this.currentPopulatePage * populatorFilter.limit)) ? 
+                        this.currentPopulatePage * populatorFilter.limit : populate_length;      
+                    }                       
+                }
+        
+                if (populatorFilter.directionPaginate == "next") {
+                    if (bufferDocsSize >= (populatorFilter.limit * this.currentPopulatePage)) {
+                        idx_start = populatorFilter.limit * this.currentPopulatePage;
+                        idx_end = (populate_length > ((this.currentPopulatePage + 1) * populatorFilter.limit)) ? 
+                                (this.currentPopulatePage + 1) * populatorFilter.limit : populate_length;                         
+                    }else{
+                        idx_start = populatorFilter.limit * (this.currentPopulatePage-1);
+                        idx_end = populatorFilter.limit * this.currentPopulatePage;   
+                    }
+                } 
+                break
 
             case "AccumulativeSimple":            
 
-                if (this.currentDirectionPaginate == "initial") {
-                    idx_end = (_pathDocsOr_ids.length > this.currentLimit) ? 
-                                this.currentNumDocsGetted + this.currentLimit : 
-                                _pathDocsOr_ids.length;     
+                if (populatorFilter.directionPaginate == "initial") {
+                    idx_end = (populate_length > populatorFilter.limit) ? 
+                                populatorFilter.limit : 
+                                populate_length;     
                 }
         
-                if (this.currentDirectionPaginate == "previous") {                    
-                    idx_end = (_pathDocsOr_ids.length >= this.currentLimit) ? 
-                                this.currentLimit : 
-                                _pathDocsOr_ids.length;                     
+                if (populatorFilter.directionPaginate == "previous") {                    
+                    idx_end = (populate_length >= populatorFilter.limit) ? 
+                                populatorFilter.limit : 
+                                populate_length;                     
                 }
         
-                if (this.currentDirectionPaginate == "next") {
-                    idx_start = (_pathDocsOr_ids.length > this.currentNumDocsGetted) ? 
-                                this.currentNumDocsGetted : this.currentNumDocsGetted - this.currentLimit;
-                                
-                    idx_end = (_pathDocsOr_ids.length > (this.currentNumDocsGetted + this.currentLimit)) ? 
-                                this.currentNumDocsGetted + this.currentLimit : _pathDocsOr_ids.length;
+                if (populatorFilter.directionPaginate == "next") {
+                    idx_start = populatorFilter.limit * this.currentPopulatePage;
+                    idx_end = (populate_length > ((this.currentPopulatePage + 1) * populatorFilter.limit)) ? 
+                              (this.currentPopulatePage + 1) * populatorFilter.limit : populate_length; 
                 } 
 
-                extract_result = _pathDocsOr_ids.slice(idx_start, idx_end);
                 break;                
         
             case "AccumulativeStrong": 
 
-                if (this.currentDirectionPaginate == "initial") {
-                    idx_end = (_pathDocsOr_ids.length > this.currentLimit) ? 
-                                this.currentNumDocsGetted + this.currentLimit : 
-                                _pathDocsOr_ids.length;     
+                if (populatorFilter.directionPaginate == "initial") {
+                    idx_end = (populate_length > populatorFilter.limit) ? 
+                                populatorFilter.limit : 
+                                populate_length;     
                 }
         
-                if (this.currentDirectionPaginate == "previous") {                    
-                    idx_end = (_pathDocsOr_ids.length >= this.currentLimit) ? 
-                                this.currentLimit : 
-                                _pathDocsOr_ids.length;                     
+                if (populatorFilter.directionPaginate == "previous") {                    
+                    idx_end = (populate_length >= populatorFilter.limit) ? 
+                                populatorFilter.limit : 
+                                populate_length;                     
                 }
         
-                if (this.currentDirectionPaginate == "next") {      
-                    idx_end = (_pathDocsOr_ids.length > (this.currentNumDocsGetted + this.currentLimit)) ? 
-                                this.currentNumDocsGetted + this.currentLimit : _pathDocsOr_ids.length;
+                if (populatorFilter.directionPaginate == "next") {      
+                    idx_end = (populate_length > ((this.currentPopulatePage + 1) * populatorFilter.limit)) ? 
+                              (this.currentPopulatePage + 1) * populatorFilter.limit : populate_length; 
                 } 
 
-                extract_result = _pathDocsOr_ids.slice(idx_start, idx_end);
                 break;
                 
             case "none":
@@ -552,7 +682,7 @@ export class Fb_Paginator {
                 return _pathDocsOr_ids;
                 break;
         }
-
+        extract_result = _pathDocsOr_ids.slice(idx_start, idx_end);    
         return extract_result;
     }
 
@@ -563,254 +693,180 @@ export class Fb_Paginator {
      * (o array vacio) que estan siendo objetos del poblar
      * 
      * *Param:*  
-     * `docs` : los documentos que resultaron de la 
+     * `pDocsGetted` : los documentos que resultaron de la 
      * consulta individual para la pobalcion.  
      * `populatorFilter` : filtro exclusivo para el 
      * modo poblar del modelo utilizado.  
      * ____
      */
     public postPopulationPaginate<TModel>(
-        docs:TModel[],
+        pDocsGetted:TModel[],
         populatorFilter:IPopulationFilter<unknown>, 
     ){
 
-        this.currentDirectionPaginate = populatorFilter.directionPaginate; 
-        this.currentLimit = populatorFilter.limit;
+        const populate_length = populatorFilter.populateSize; 
+        const bufferDocsSize = this.bufferPopulateDocGetted.length;
+        const modulusBuff = this.bufferPopulateDocGetted.length % populatorFilter.limit;
+        const popuDocGetted_Length = pDocsGetted.length;
+        const isPopuDocs = popuDocGetted_Length > 0;
 
         switch (this.typePagination) {
             
+            /**Permite paginacion entre lotes next y previous, 
+             * NO actualiza el lote limite  */
             case "classic":
                 
-                if (this.currentDirectionPaginate == "initial") {
-                    this.currentPage = 1;
+                if (populatorFilter.directionPaginate == "initial") {
+                    this.resetPaginatorData();
                 }
         
-                if (this.currentDirectionPaginate == "previous") {
-                    if (this.currentPage > 1) {
-                        this.currentPage--;
-                    }                      
+                if (populatorFilter.directionPaginate == "previous") {
+                    if (this.currentPopulatePage > 1) {
+                        this.currentPopulatePage--;
+                        this.isLimitPrevious = false;
+                    }else{
+                        this.isLimitPrevious = true;
+                    }
+                    this.isLimitNext = false;                      
                 }
         
-                if (this.currentDirectionPaginate == "next") {
-                    if (docs.length > (this.currentPage * this.currentLimit)) {
-                        this.currentPage++;
+                if (populatorFilter.directionPaginate == "next") {
+                    if (populate_length > (this.currentPopulatePage * populatorFilter.limit)) {
+                        this.currentPopulatePage++;
+                        this.isLimitNext = false;
+                    }else{
+                        this.isLimitNext = true;
                     }   
-                }     
+
+                    this.isLimitPrevious = false;
+                }   
+
+                if (pDocsGetted.length > 0) {
+                    this.bufferPopulateDocGetted  = pDocsGetted                      
+                }
+                break;
+
+            /**Permite paginacion acumulativa y con direccion 
+             * next y previous y si actualiza el ultimo lote*/
+            case "classic-Acumulative":
+                if (populatorFilter.directionPaginate == "initial") {
+                    this.resetPaginatorData();
+                }
+        
+                if (populatorFilter.directionPaginate == "previous") {
+                    if (this.currentPopulatePage > 1) {
+                        this.currentPopulatePage--;
+                        this.isLimitPrevious = false;
+                    }else{
+                        this.isLimitPrevious = true;
+                    }
+                    this.isLimitNext = false;    
+                    
+                    if (isPopuDocs) {
+                        const _id_pDoc = pDocsGetted[0]["_id"];
+                        let initialCutB = (this.bufferPopulateDocGetted.findIndex((B_pDoc) => B_pDoc["_id"] == _id_pDoc))    
+                        if(initialCutB >= 0 ){
+                            this.bufferPopulateDocGetted.splice(initialCutB); 
+                        }                        
+                    }
+                    
+                }
+        
+                if (populatorFilter.directionPaginate == "next") {
+                    if (populate_length >= (this.currentPopulatePage * populatorFilter.limit)) {
+                        this.currentPopulatePage++;
+                        this.isLimitNext = false;
+                    }else{
+                        this.isLimitNext = true;
+                    }   
+
+                    this.isLimitPrevious = false;
+                }   
+
+                this.bufferPopulateDocGetted  = this.bufferPopulateDocGetted.concat(pDocsGetted);
+                this.bufferPopulateDocGetted = this.util_ctrl.deleteDuplicateForObjArray(this.bufferPopulateDocGetted, "_id")
                 break;
 
             case "AccumulativeSimple":
-                if (this.currentDirectionPaginate == "initial") {
-                    this.currentNumDocsGetted = docs.length;
-                    this.currentPage = 1;
+                if (populatorFilter.directionPaginate == "initial") {
+                    this.resetPaginatorData();
                 }
         
-                if (this.currentDirectionPaginate == "previous") {
-                    this.currentNumDocsGetted = docs.length;
-                    this.currentPage = 1;                   
+                if (populatorFilter.directionPaginate == "previous") {
+                    this.resetPaginatorData();
+                    
+                    this.isLimitPrevious = true;
+                    this.isLimitNext = false;
                 }
         
-                if (this.currentDirectionPaginate == "next") {
-                    this.currentNumDocsGetted += docs.length;                   
-                    this.currentPage = Math.ceil(this.currentNumDocsGetted / this.currentLimit);
-                }   
+                if (populatorFilter.directionPaginate == "next") {                 
+                    if (populate_length > (this.currentPopulatePage * populatorFilter.limit)) {
+                        this.currentPopulatePage++;
+                        this.isLimitNext = false;   
+                    }else{
+                        this.isLimitNext = true;   
+                    }
+                    this.isLimitPrevious = false;                                   
+                }
+                
+                this.bufferPopulateDocGetted  = this.bufferPopulateDocGetted.concat(pDocsGetted);
                 break;                 
 
             case "AccumulativeStrong":                
                 
-                if (this.currentDirectionPaginate == "initial") {
-                    this.currentNumDocsGetted = docs.length;
-                    this.currentPage = 1;
+                if (populatorFilter.directionPaginate == "initial") {
+                    this.resetPaginatorData();
                 }
         
-                if (this.currentDirectionPaginate == "previous") {
-                    this.currentNumDocsGetted = docs.length;
-                    this.currentPage = 1;                   
+                if (populatorFilter.directionPaginate == "previous") {
+                    this.resetPaginatorData();
+                    
+                    this.isLimitPrevious = true;
+                    this.isLimitNext = false;                   
                 }
         
-                if (this.currentDirectionPaginate == "next") {
-                    this.currentNumDocsGetted += docs.length;                   
-                    this.currentPage = Math.ceil(this.currentNumDocsGetted / this.currentLimit);
+                if (populatorFilter.directionPaginate == "next") {
+                    if (populate_length > (this.currentPopulatePage * populatorFilter.limit)) {
+                        this.currentPopulatePage++;
+                        this.isLimitNext = false;   
+                    }else{
+                        this.isLimitNext = true;   
+                    }
+                    this.isLimitPrevious = false;     
                 }   
+                this.bufferPopulateDocGetted  = pDocsGetted;           
                 break;                
 
             case "none":         
             default:
+                this.bufferPopulateDocGetted  = pDocsGetted  
                 break;
         }
 
-        return;
+        pDocsGetted = <TModel[]>this.bufferPopulateDocGetted.filter((doc)=>(doc && doc != null));
+
+        return pDocsGetted;
     }
 
     /** 
      * *public*  
-     * determina que concatenacion realizar de 
-     * acuerdo a de los nuevos documentos leidos 
-     * en comparacion con los documentos anteriores
-     * y al tipo de paginacion que se este usando  
-     * 
-     * *Param:*  
-     * `accumulatedDocs` : los documentos anteriormente leidos
-     * y actualmente mostrados.  
-     * `gettedDocs` : los nuevos documentos leidos
+     * devuelve el estado del limite
+     *  de paginacion en direccion "next"
      * ____
      */
-    public concatDocsBeforeGetted<TModel>(
-        accumulatedDocs:TModel[], 
-        gettedDocs:TModel[]
-    ):TModel[]{
-        //convertirlos a arrays
-        accumulatedDocs = (Array.isArray(accumulatedDocs)) ? accumulatedDocs : [accumulatedDocs];
-        gettedDocs = (Array.isArray(gettedDocs)) ? gettedDocs : [gettedDocs];
-
-        const accumDocsSize = accumulatedDocs.length;
-        const gettedDocSize = gettedDocs.length;
-
-        switch (this.typePagination) {
-            
-            case "classic":
-
-            //­­­___ <TEST> _____________________________________
-            //New:
-            // if (gettedDocSize <= 0) {
-            //     return accumulatedDocs;
-            // }else{
-            //     if ((gettedDocSize + accumDocsSize) > this.currentLimit) {
-                    
-            //     }
-            // }
-            
-            //________________________________________________
-            //Old:
-            if ((gettedDocs.length + accumulatedDocs.length) <= this.currentLimit ) {
-                return accumulatedDocs.concat(gettedDocs);
-            }
-            return gettedDocs;            
-            
-            //________________________________________________                
-
-                break;
-        
-            case "AccumulativeSimple":
-                if (this.currentPage == 1) {
-                    return gettedDocs;
-                }
-                if (gettedDocs.length > 0) {
-                    return accumulatedDocs.concat(gettedDocs);
-                }
-                return accumulatedDocs;
-                break;
-
-            case "AccumulativeStrong":
-                return gettedDocs;
-                break;   
-                
-            default: 
-                return gettedDocs;
-                break;
-        }
+    public getLimitNext(){
+        return this.isLimitNext;
     }
 
-    /** 
+        /** 
      * *public*  
-     * el tipo de paginacion que tiene configurado 
-     * este *paginator*
+     * devuelve el estado del limite
+     *  de paginacion en direccion "previous"
      * ____
      */
-    // public getTypePagination(){
-    //     return this.typePagination;
-    // }
-
-    /** 
-     * *public*  
-     * retorna el numero de la pagina actual que  
-     * contienelos documentos mas recientemente 
-     * leidos.  
-     * **Importante**
-     * Siempre se maneja con logica 1
-     * ____
-     */
-    public getCurrentPage():number{
-        return this.currentPage;
+    public getLimitPrevious(){
+        return this.isLimitPrevious;
     }
 
-    /** 
-     * *public*  
-     * formatea el limite de acuerdo al *typePagination* 
-     * (caso especial para *AccumulativeStrong*) y al 
-     * *optionPaginate* usado antes de la configuracion 
-     * de la query.  
-     * **Recordar** solo usado para la preQuery de 
-     * paginar (NO usar para poblar)
-     * ____
-     */
-    public formatLimitPreQuery(
-        limit:number, 
-        directionPaginate:"initial" |"previous" |"next"
-    ):number{
 
-        if (this.typePagination != "AccumulativeStrong") {
-            /*cualquier otro tipo de paginacion se usa 
-            el limite del filtro */
-            return limit;
-        }
-        /*se determina como manejar un limite acumulativo 
-        fuerte de acuerdo a la pagina actual y si no es
-         *previous* */
-        limit = (this.currentNumDocsGetted > 0 && 
-                directionPaginate != "previous") ? 
-                (this.currentPage + 1) * limit :
-                limit;   
-
-        return limit;
-    }
-
-    /** 
-     * *public*  
-     * determina si al llegar al limite de la paginacion 
-     * (para este caso el limite inicial *previous*) si 
-     * se permite o no releer los documentos de esta pagina 
-     * limite.  
-     * **usar con precaucion**  
-     * el permitir releer (ya sea en una o ambas 
-     * direcciones) permitirá actualizar cambios que se 
-     * hallan producido en el documento pero generando 
-     * asi un sobredemanda de lecturas de documentos. 
-     * 
-     * **NO OPERATIVA**
-     * ____
-     */
-    public isPreviousLimited(isReread=false):boolean{
-        /*determinar si es la primera pagina */
-        if (this.currentPage > 1) {
-            return false;
-        }
-
-        /*se deduce que si es releido se hace un toogle de la flag */
-        return !(isReread);
-
-    }
-
-    /** 
-     * *public*  
-     * determina si al llegar al limite de la paginacion 
-     * (para este caso el limite inicial *previous*) si 
-     * se permite o no releer los documentos de esta pagina 
-     * limite.  
-     * **usar con precaucion**  
-     * el permitir releer (ya sea en una o ambas 
-     * direcciones) permitirá actualizar cambios que se 
-     * hallan producido en el documento pero generando 
-     * asi un sobredemanda de lecturas de documentos. 
-     * 
-     * **NO OPERATIVA**
-     * ____
-     */
-    public isNextLimited(isReread=false):boolean{
-        /*determinar si es la ultima pagina */
-        //---como lo hago?
-
-        /*se deduce que si es releido se hace un toogle de la flag */
-        return !(isReread);
-
-    }    
 }

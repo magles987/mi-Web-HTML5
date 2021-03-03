@@ -41,7 +41,7 @@ export class ProductoController extends Fb_Controller<Producto, IProducto<any>, 
         
         this.paginator = new Fb_Paginator("classic");
         this.populator = new ProductoPopulator(this.modelMeta_Offline, 
-                                new Fb_Paginator("none"));
+                                new Fb_Paginator("classic"));
         this.modelFormatter = new ProductoFormatter();
         //this.modelValidator = new ProductoValidator();
 

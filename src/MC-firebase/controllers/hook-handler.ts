@@ -22,7 +22,7 @@ export interface IHookParams {
     //================================   
     /**Contenedor de HookParams externos 
      * el cual debe ser sobre escrito en la 
-     * interfaz que hereda a estay correspondiente 
+     * interfaz que hereda a esta y correspondiente 
      * al modeloHookParam
     */
    ext_HookParams?:unknown;

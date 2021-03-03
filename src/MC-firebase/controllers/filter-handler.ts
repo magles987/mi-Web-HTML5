@@ -79,7 +79,9 @@ export interface IPopulationFilter<TIModel> {
     /**(no utilizado en Firestore) A futuro permitiria 
      * seleccionar un numero de pagina especifico y dirigirse a ella */
     targetPage:number | null;  
-    
+
+    /**contiene el tamanno de referencias a poblar */
+    populateSize:number;
 }
 
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
@@ -164,7 +166,8 @@ export abstract class FilterHandlerCtrl<TIModel> {
             isPopulate:false,
             limit:5,
             directionPaginate:"initial",
-            targetPage : null
+            populateSize : 0, // se debe asignar
+            targetPage : null,
         };
     }    
 
