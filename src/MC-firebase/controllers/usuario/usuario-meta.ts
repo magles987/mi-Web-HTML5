@@ -140,7 +140,6 @@ class map_PerfilMeta extends ModelMetadata implements Imap_Perfil<any> {
     //================================================================    
     tipo:IFieldMeta<string, unknown> = {
         nom: "tipo",
-        nomPath: "map_Perfil.tipo",
         default: "",
         isArray : false,
         fieldType: EFieldType.string,
@@ -148,7 +147,6 @@ class map_PerfilMeta extends ModelMetadata implements Imap_Perfil<any> {
     };
     subTipo:IFieldMeta<string, unknown> = {
         nom: "subTipo",
-        nomPath: "map_Perfil.subTipo",
         default: "",
         isArray : false,
         fieldType: EFieldType.string,
@@ -156,7 +154,6 @@ class map_PerfilMeta extends ModelMetadata implements Imap_Perfil<any> {
     };
     map_Tipo = <IFieldMeta<Imap_PColaborador<any> & Imap_PCliente<any>, unknown>>{
         nom: "map_Tipo",
-        nomPath: "map_Perfil.map_Tipo",
         default: {},
         isArray : false,
         fieldType: EFieldType.objectOrMap,

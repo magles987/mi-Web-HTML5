@@ -1,4 +1,4 @@
-import { PopulatorHandler } from "../populator-handler";
+import { RelationshipHandler } from "../relationship-handler";
 import { Usuario } from "../../models/usuario/usuario-m";
 import { IFieldMeta, EFieldType} from "../meta";
 import { Fb_Paginator } from "../fb-paginator";
@@ -7,6 +7,7 @@ import { UsuarioMeta } from "./usuario-meta";
 
 //--para borrar (redundancia solo para pruebas)
 import { UsuarioController } from "./usuario-ctrl";
+import { Fb_Controller } from "../fb-controller";
 
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
 /** @info <hr>  
@@ -17,7 +18,7 @@ import { UsuarioController } from "./usuario-ctrl";
  * ``  
  * ____
  */
-export class UsuarioPopulator extends PopulatorHandler<Usuario, UsuarioMeta> {
+export class UsuarioRelationshipHandler extends RelationshipHandler<Usuario, UsuarioMeta> {
 
     /** 
      * `constructor()`  
@@ -35,8 +36,6 @@ export class UsuarioPopulator extends PopulatorHandler<Usuario, UsuarioMeta> {
         this.modelMeta = modelMeta;
         this.populatePaginator = populatePaginator;
 
-        this.initMapPopulateCtrl();
-        this.initReferenceCtrl();
     }
 
     /** @override<hr>  
@@ -44,17 +43,16 @@ export class UsuarioPopulator extends PopulatorHandler<Usuario, UsuarioMeta> {
      * ....
      * ____
      */
-    protected initMapPopulateCtrl():void{
+    protected getInputCtrls(){
         /*inicializa el map de forma directa por 
         medio del constructor*/
-        this.mapPopulateCtrlsByField = new Map([
+        const ctrls = new Map([
             //asignar en pares [nom, getCtrl]
             // [
-            //     xxx.nom,
-            //     () => xxx.getInstance()
+
             // ]
-        ]);
-        return;
+        ]) 
+        return ctrls as unknown as Map<string, ()=>Fb_Controller<any,any,any>>
     }
 
     /** @override<hr>  
@@ -62,38 +60,16 @@ export class UsuarioPopulator extends PopulatorHandler<Usuario, UsuarioMeta> {
      * ....
      * ____
      */
-    protected initReferenceCtrl():void{
+    protected  getOutputCtrls(){
         /*inicializa el contenedor array de forma directa*/
-        this.CtrlReferences = [
+        const ctrls = [
             //Aqui cada get Ctrl que tenga referencia 
             //de este model
-            // () => xxx.getInstance(),
+
         ]; 
-        return;
+        return ctrls as unknown as [()=>Fb_Controller<unknown,unknown,unknown>];
     }
 
-    /** 
-     * *public*  
-     * descrip...
-     * ____
-     */
-    public populateDoc(doc:Usuario, nomFields?:string[]):Usuario{
-        for (const key in this.modelMeta) {
 
-            let metaField = <IFieldMeta<unknown, any>><unknown>this.modelMeta[key];
-
-            if (nomFields && Array.isArray(nomFields)) {
-                const element = this.modelMeta[key];
-                
-            }else{
-                
-                if (metaField.fieldType == EFieldType.foreignKey) {
-                    
-                }
-            }
-        }
-        // this.modelMeta._id.
-        return doc;
-    }
 
 }

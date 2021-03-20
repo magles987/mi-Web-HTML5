@@ -58,17 +58,13 @@ export enum EFieldType {
     embedded = "embedded",    
 
     /**
-     * indica que el campo almacena referencias (_id o 
-     * _pathDoc) de documentos de otras colecciones 
-     * o subColecciones
+     * indica que el campo almacena referencias (_id 
+     * o _pathDoc o _docClone) de documentos de otras colecciones 
+     * o subColecciones (las especificaciones deben ir en la 
+     * configuracion de estructura)
      */
-    foreignKey = "foreignKey",
+    foreign = "foreign",
 
-    /**
-     * indica que el campo almacena un clon referencia 
-     * a otro documento en otra coleccion o subcoleccion
-     */    
-    foreignClone = "foreignClone",    
     
 }
 
@@ -206,35 +202,6 @@ export interface IFieldMeta<TField, TExtModelMeta>{
     nom : string;
 
     /** 
-     * en BDs desnormalizadas se pueden almacenar substructuras, 
-     * que no son embebidos o subcolecciones (en firestore se 
-     * llaman map, en MongoDb son objeto), los cuales a su vez 
-     * tienen subcampos, para poder consultar dichos subcampos 
-     * en la mayoria de casos se debe hacer a traves de una ruta 
-     * relativa a la coleccion o subColeccion ejemplo: 
-     * ```typescript
-     * //para la coleccion:
-     * {
-     *      campo1:string,
-     *      campo2:string,
-     *      map_campo:{ //para Firestore
-     *          subcampo:string
-     *      }
-     *      obj_campo:{ //para mongoDB
-     *          subcampo:string
-     *      }
-     * }
-     * //para consultar subcampo se usa:
-     * "map_campo.subcampo" // para Firestore
-     * "obj_campo.subcampo" // para MongoDB
-     * ```
-     * esta propiedad `nomPath` almacena la ruta 
-     * referencial y relativa al nom campo
-     * ____
-     */
-    nomPath? : string;
-
-    /** 
      * indica el valor inicial que debe tener el campo antes 
      * de manipular los datos, muy util para instanciar *model* 
      * con valores especiales (incluso estos valores 
@@ -253,14 +220,29 @@ export interface IFieldMeta<TField, TExtModelMeta>{
     default : TField;
 
     /**
-     * ....
+     * el tipo dato que almacenara este campo, de 
+     * acuerdo a las agrupaciones que recibe la 
+     * base de datos
      */
     fieldType :EFieldType;
 
-    isArray : boolean;
+    /**
+     * Determina si es un campo array, 
+     * (simple, referencial o de objetos)
+     */
+    isArray? : boolean;
 
+    /**
+     * Determina si es un campo para calculos 
+     * pero *NO* es almacenable en la BD
+     */
     isVirtual? : boolean;
 
+    /**
+     * Configuracion especial para campos 
+     * que contienen algun tipo de estructura 
+     * o son referenciales
+     */
     structureFConfig? : {
 
         /**
@@ -294,20 +276,25 @@ export interface IFieldMeta<TField, TExtModelMeta>{
 
         /**
          * si el campo es referencial (que NO sea 
-         * *objteto* o *map* o *embebido*) esta 
+         * *objeto sencillo* o *map* o *embebido*) esta 
          * propiedad determina el tipo de referencia 
-         * que almacenará el campo
+         * que almacenará el campo.  
+         * `_pathDoc` : un string con la ruta exacta al documento 
+         * referenciado (incluye el _id).  
+         * `_docClone` : una copia (o extracto) del documento 
+         * almacenado en otra coleccion (este clon de  documento 
+         * debe tener al menos las propiedades _id y _pathDoc)
         */
-        typeRef?: "_id" | "_pathDoc" | "_docClone";
+        typeRef?:  "_pathDoc" | "_docClone";
 
         /**indica la cardinalidad (multiplicidad) del 
          * campo si el campo almacena:  
-         * `"one"` --> [0a1,1a1]  
-         * `"many"` --> [0aMuchos, 1aMuchos]
+         * `"one"` --> [0a1,1a1].  
+         * `"many"` --> [0aMuchos, 1aMuchos].  
+         * para el tipo de referencia "_docClone" se puede usar 
+         * "many" solo que se comporta de como array aplanado 
          * */
         cardinality? : "one" | "many";
-
-        nomRefFieldLinked? : string;
 
     }
 

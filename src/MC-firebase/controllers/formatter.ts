@@ -97,16 +97,8 @@ export abstract class Formatter {
                     }
 
                     /*tratamiento de referencial por _id o _pathDoc */
-                    if (fieldMeta.fieldType == EFieldType.foreignKey) {
+                    if (fieldMeta.fieldType == EFieldType.foreign) {
                         /*asigna directamente (no se formatean las referencias fk_)*/
-                        DocResult[keyField] = doc[keyField];
-                        continue;        
-                    }
-
-                    /*tratamiento de documento clonado */
-                    if (fieldMeta.fieldType == EFieldType.foreignClone) {
-                        /*asigna directamente (no se formatean las referencias fc_)*/
-                        //---[falta analisis]---
                         DocResult[keyField] = doc[keyField];
                         continue;        
                     }
@@ -234,7 +226,7 @@ export abstract class Formatter {
                     }
 
                     /*tratamiento de referencial por _id o _pathDoc */
-                    if (fieldMeta.fieldType == EFieldType.foreignKey) {
+                    if (fieldMeta.fieldType == EFieldType.foreign) {
                         pResponseByFields.push(
                             Promise.resolve()
                             .then(()=>{
@@ -244,21 +236,6 @@ export abstract class Formatter {
                             })
                         );
                         continue;        
-                    }
-
-                    /*tratamiento de documento clonado */
-                    if (fieldMeta.fieldType == EFieldType.foreignClone) {
-                        pResponseByFields.push(
-                            Promise.resolve()
-                            .then(()=>{
-                                /*asigna directamente (no se formatean 
-                                    las referencias fc_)*/
-                                //---[falta analisis]---
-                                DocResult[keyField] = doc[keyField];
-                                return DocResult;
-                            })
-                        );
-                        continue;                              
                     }
                     
                     /*tratamiento de estructura simple */
@@ -416,7 +393,6 @@ export abstract class Formatter {
         //settear _id:
         .then((doc)=>this.set_id(doc, ext_id))
         .then((doc)=>this.set_pathDoc(doc, modelMeta, _pathBase));
-        // .then((doc)=>this.set_pathDoc(doc, modelMeta, _pathBase));
     }
 
     /** 

@@ -187,14 +187,14 @@ export class ProductoHookHandler extends HookHandler<Producto, ProductoMeta>{
      * ____
      */
     public preDelete(
-        _id: string, 
+        deletedDoc: Producto, 
         modelMeta:ProductoMeta, 
         hookParams: IProductoHookParams
-    ): Promise<string> {
-        return super.preDelete(_id, modelMeta, hookParams)
-        .then((_id)=>{
+    ): Promise<Producto> {
+        return super.preDelete(deletedDoc, modelMeta, hookParams)
+        .then((doc)=>{
             //....aqui la personalizacion del hook
-            return _id;
+            return doc;
         });
     }
 
@@ -204,10 +204,10 @@ export class ProductoHookHandler extends HookHandler<Producto, ProductoMeta>{
      * ____
      */
     public postDelete(
-        _id: string, 
+        deletedDoc: Producto, 
         hookParams: IProductoHookParams
     ): Promise<void> {
-        return super.postDelete(_id, hookParams)
+        return super.postDelete(deletedDoc, hookParams)
         .then(()=>{
             //....aqui la personalizacion del hook
             return;

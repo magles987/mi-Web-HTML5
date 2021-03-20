@@ -15,7 +15,7 @@ import jquery from "jquery";
 import "./body1-c.scss";
 import { IProductoHookParams } from '../../MC-firebase/controllers/producto/producto-hook-handler';
 import { Fb_Paginator } from '../../MC-firebase/controllers/fb-paginator';
-import { ProductoPopulator } from '../../MC-firebase/controllers/producto/producto-populator-handler';
+import { ProductoRelationshipHandler } from '../../MC-firebase/controllers/producto/producto-relationship-handler';
 import { ProductoMeta } from '../../MC-firebase/controllers/producto/producto-meta';
 
 /**Contiene el template ya requerido desde el archivo HTML */
@@ -62,7 +62,7 @@ export class Body1Component extends Component<PropsForComponent>{
     public mFilter:IProductoFilter;
     public mHookP:IProductoHookParams;
     private mPaginator:Fb_Paginator;
-    private mPopulator:ProductoPopulator;
+    private mRelationHandler:ProductoRelationshipHandler;
 
     public listProductos:Producto[];
     public list_FK_PrubaProd:Producto[];
@@ -96,7 +96,7 @@ export class Body1Component extends Component<PropsForComponent>{
         this.mFilter = this.mCtrl.getDefFilterInstance();
         this.mHookP = this.mCtrl.getDefHookParamsInstance();
         this.mPaginator = this.mCtrl.getModelPaginator();
-        this.mPopulator = this.mCtrl.getModelPopulator();
+        this.mRelationHandler = this.mCtrl.getModelPopulator();
 
         this.listProductos = [];
         this.list_FK_PrubaProd = [];
@@ -122,6 +122,36 @@ export class Body1Component extends Component<PropsForComponent>{
             this.listProductos = docs;
 
             //this.start_FK_Page(); 
+
+
+
+            this.mCtrl.update(this.listProductos[0], this.mHookP)
+            .then(() => {
+                console.log(`todo bene`);
+            })            
+
+
+            // const testField = {
+            //     _id:"171e0ce6925-907198e3c1f87abe",
+            //     _pathDoc:"Productos/171e0ce6925-907198e3c1f87abe",
+            //     nombre:"holasss"
+            // };
+
+            // this.mRelationHandler.modifyReference("update", testField)
+            // .then(() => {
+            //     console.log(`todo bene`);
+            // })
+            // .catch((error)=>{ console.log(error)});
+
+            // const testField = this.listProductos[0];
+
+            // this.mRelationHandler.setCloneReference(testField, this.mMeta.fk_refTest.nom)
+            // .then(() => {
+            //     console.log(`todo bene`);
+            // })
+            // .catch((error)=>{ console.log(error)});
+
+        
         })
 
     }
@@ -160,15 +190,15 @@ export class Body1Component extends Component<PropsForComponent>{
         let doc0 = this.listProductos[0];
         
         const fMeta = this.mMeta.fk_PruebaProd;
-        let fCtrl = this.mPopulator.getInputCtrlByNomField(fMeta.nom);
+        let fCtrl = this.mRelationHandler.getInputCtrlByNomModel(fMeta.nom);
         let fPFilter = fCtrl.getDefPopulationFilterInstance();
         let fHookP = fCtrl.getDefHookParamsInstance();
-        let fpPaginator = this.mPopulator.getPopulatePaginator();
+        let fpPaginator = this.mRelationHandler.getPopulatePaginator();
 
         fPFilter.isPopulate = true;
         fPFilter.directionPaginate = "initial";
 
-        this.mPopulator.populateField(doc0.fk_PruebaProd, fMeta, fPFilter, fHookP)
+        this.mRelationHandler.populateField(doc0.fk_PruebaProd, this.mMeta.fk_PruebaProd.nom, fPFilter, fHookP)
         .then((fks:Producto[])=>{
             fks = (Array.isArray(fks)) ? fks : [fks];;
             this.list_FK_PrubaProd = fks;
@@ -185,16 +215,16 @@ export class Body1Component extends Component<PropsForComponent>{
         let doc0 = this.listProductos[0];
 
         const fMeta = this.mMeta.fk_PruebaProd;
-        let fCtrl = this.mPopulator.getInputCtrlByNomField(fMeta.nom);
+        let fCtrl = this.mRelationHandler.getInputCtrlByNomModel(fMeta.nom);
         let fPFilter = fCtrl.getDefPopulationFilterInstance();
         let fHookP = fCtrl.getDefHookParamsInstance();
-        let fpPaginator = this.mPopulator.getPopulatePaginator();
+        let fpPaginator = this.mRelationHandler.getPopulatePaginator();
 
         fPFilter.isPopulate = true;
         fPFilter.directionPaginate = "previous";
         fPFilter.limit = 2;
 
-        this.mPopulator.populateField(doc0.fk_PruebaProd, fMeta, fPFilter, fHookP)
+        this.mRelationHandler.populateField(doc0.fk_PruebaProd, this.mMeta.fk_PruebaProd.nom, fPFilter, fHookP)
         .then((fks:Producto[])=>{
             fks = (Array.isArray(fks)) ? fks : [fks];;
             this.list_FK_PrubaProd = fks;
@@ -210,15 +240,15 @@ export class Body1Component extends Component<PropsForComponent>{
         let doc0 = this.listProductos[0];
 
         const fMeta = this.mMeta.fk_PruebaProd;
-        let fCtrl = this.mPopulator.getInputCtrlByNomField(fMeta.nom);
+        let fCtrl = this.mRelationHandler.getInputCtrlByNomModel(fMeta.nom);
         let fPFilter = fCtrl.getDefPopulationFilterInstance();
         let fHookP = fCtrl.getDefHookParamsInstance();
-        let fpPaginator = this.mPopulator.getPopulatePaginator();
+        let fpPaginator = this.mRelationHandler.getPopulatePaginator();
 
         fPFilter.isPopulate = true;
         fPFilter.directionPaginate = "next";
 
-        this.mPopulator.populateField(doc0.fk_PruebaProd, fMeta, fPFilter, fHookP)
+        this.mRelationHandler.populateField(doc0.fk_PruebaProd, this.mMeta.fk_PruebaProd.nom, fPFilter, fHookP)
         .then((fks:Producto[])=>{
             fks = (Array.isArray(fks)) ? fks : [fks];;
             this.list_FK_PrubaProd = fks;

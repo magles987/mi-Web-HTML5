@@ -366,7 +366,7 @@ export abstract class HookHandler<TModel, TModelMeta>{
      * Devuelve una Promesa con el _id del documento listo a eliminar  
      * 
      * *Param:*  
-     * `_id` : el _id (en string) del documento a eliminar
+     * `deletedDoc` : el documento que esta siendo sujeto de eliminacion
      * `hookParams` : Contiene informacion adicional  
      * para configurar los diferentes tipos de hooks, este 
      * objeto debe ser tipado en la implementacion de 
@@ -374,12 +374,12 @@ export abstract class HookHandler<TModel, TModelMeta>{
      * ____
      */
     public preDelete(
-        _id:string, 
+        deletedDoc:TModel, 
         modelMeta:TModelMeta, 
         hookParams:IHookParams
-    ):Promise<string>{
+    ):Promise<TModel>{
         //...aqui lo que lo comun del hook
-        return Promise.resolve(_id);
+        return Promise.resolve(deletedDoc);
     }   
     
     /** 
@@ -393,7 +393,7 @@ export abstract class HookHandler<TModel, TModelMeta>{
      * eliminacion correctamente
      * 
      * *Param:*  
-     * `doc` : documento ya eliminado  
+     * `deletedDoc` : el documento ya ha sido eliminado
      * `hookParams` : Contiene informacion adicional  
      * para configurar los diferentes tipos de hooks, este 
      * objeto debe ser tipado en la implementacion de 
@@ -401,7 +401,7 @@ export abstract class HookHandler<TModel, TModelMeta>{
      * ____
      */
     public postDelete(
-        _id:string, 
+        deletedDoc:TModel, 
         hookParams:IHookParams
     ):Promise<void>{
         //...aqui lo que lo comun del hook

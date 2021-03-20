@@ -8,7 +8,8 @@ import { ProductoFormatter } from "./producto-formatter";
 import { ProductoHookHandler, IProductoHookParams } from "./producto-hook-handler";
 import { ProductoFilterHandlerCtrl, IProductoFilter, IProductoPopulationFilter } from "./producto-filter-handler";
 import { Fb_Paginator } from "../fb-paginator";
-import { ProductoPopulator } from "./producto-populator-handler";
+import { ProductoRelationshipHandler } from "./producto-relationship-handler";
+import { ProductoValidator } from "./producto-validator";
 
 
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
@@ -39,11 +40,13 @@ export class ProductoController extends Fb_Controller<Producto, IProducto<any>, 
         this.modelMeta_Offline = new ProductoMeta();
         this.updateModelMetada().catch((error)=>{ console.log(error)});
         
+        this.modelValidator = new ProductoValidator(this.modelMeta);
+        this.modelValidator.validateModelMetada();
+
         this.paginator = new Fb_Paginator("classic");
-        this.populator = new ProductoPopulator(this.modelMeta_Offline, 
+        this.relationshipHandler = new ProductoRelationshipHandler(this.modelMeta_Offline, 
                                 new Fb_Paginator("classic"));
         this.modelFormatter = new ProductoFormatter();
-        //this.modelValidator = new ProductoValidator();
 
         this.modelFilterHandler = new ProductoFilterHandlerCtrl();
         this.modelHookHandler = new ProductoHookHandler();
@@ -112,58 +115,6 @@ export class ProductoController extends Fb_Controller<Producto, IProducto<any>, 
         return this.execQuery(cursorQuery, filter, hookParams);
     }
 
-    /** 
-     * *public*  
-     * --TEST---
-     * 
-     * *Param:*  
-     * `filter` : contiene las opciones de filtrado, 
-     * organizacion y paginacion de la consulta.  
-     *`hookParams` : Parametros para los metodos hooks 
-     * (pre y post) a la ejecucion de la lectura.  
-     * 
-     * ____
-     */
-    public fk_PruebaProd(
-        filter:IProductoFilter, 
-        hookParams?:IProductoHookParams,
-    ){
-        
-        //metadata a usar
-        const mMeta = this.modelMeta || this.modelMeta_Offline;
-
-        /**configuracion de filtro obligatoria para 
-         * esta Query*/
-        filter.isCollectionGroup = false;
-        filter.order._id = "asc";
-
-        //configuracion comun para el hookParams
-        hookParams = (hookParams && hookParams != null) ? 
-                     hookParams : this.getDefHookParamsInstance();
-
-        //================================================================
-        //Constructor de Query
-
-        //declarar cursor de consulta
-        let cursorQuery:firebase.firestore.Query<firebase.firestore.DocumentData>
-        
-        /**Determinar tipo de coleccion (normal o group) */
-        cursorQuery = this.configTypeCollectionQuery(cursorQuery, filter);
-
-        /**Construir condiciones para query */
-        cursorQuery = cursorQuery.where(mMeta.fk_PruebaProd.nom, "array-contains", "Productos/171e0ce6925-907198e3c1f87bc1");
-
-        /**Determinar orden */
-        cursorQuery = cursorQuery.orderBy("_id", "asc");
-        
-        /**Configurar limite y pagina */
-        cursorQuery = this.configLimitAndPaginateQuery(cursorQuery, filter);
-        
-        //ejecutar la consulta en comun
-        return this.execQuery(cursorQuery, filter, hookParams);
-    }
-
-
     /** @override <hr>  
      * *public*  
      * configuracion personalizada para la creacion
@@ -206,7 +157,7 @@ export class ProductoController extends Fb_Controller<Producto, IProducto<any>, 
      * ____
      */ 
     public delete(
-        _id:string, 
+        deletedDoc:Producto, 
         hookParams:IProductoHookParams,
         _pathBase="", 
     ){
@@ -214,7 +165,7 @@ export class ProductoController extends Fb_Controller<Producto, IProducto<any>, 
         hookParams = (hookParams && hookParams != null) ? 
                      hookParams : this.getDefHookParamsInstance();
 
-        return super.delete(_id, hookParams, _pathBase);
+        return super.delete(deletedDoc, hookParams, _pathBase);
     }
 
     //================================================================
@@ -233,17 +184,17 @@ export class ProductoController extends Fb_Controller<Producto, IProducto<any>, 
      * *public*  
      * ____
      */
-    // public getModelValidator():ProductoValidator{
-    //     const r = <ProductoValidator>this.modelValidator;
-    //     return r
-    // }     
+    public getModelValidator():ProductoValidator{
+        const r = <ProductoValidator>this.modelValidator;
+        return r
+    }     
 
     /** @override <hr>  
      * *public*  
      * ____
      */
-    public getModelPopulator():ProductoPopulator{
-        const r = <ProductoPopulator>this.populator;
+    public getModelPopulator():ProductoRelationshipHandler{
+        const r = <ProductoRelationshipHandler>this.relationshipHandler;
         return r
     }    
     

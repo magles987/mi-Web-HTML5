@@ -9,7 +9,8 @@ import { HookHandler, IHookParams } from "./hook-handler";
 import { FilterHandlerCtrl, IFilter, IPopulationFilter } from "./filter-handler";
 import { Formatter } from "./formatter";
 import { Fb_Paginator } from "./fb-paginator";
-import { PopulatorHandler } from "./populator-handler";
+import { RelationshipHandler } from "./relationship-handler";
+import { Validator } from "./validator";
 
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
 /** @info <hr>  
@@ -54,7 +55,7 @@ export abstract class Fb_Controller<TModel,TIModel, TModelMeta>{
      * esta clase)
      * ____
      */
-    // protected modelValidator: Validator;
+    protected modelValidator: Validator;
 
     /** *protected*  
      * representa el formateador de valores para el modelo.  
@@ -94,7 +95,7 @@ export abstract class Fb_Controller<TModel,TIModel, TModelMeta>{
     /** *protected*  
      * ...
      */
-    protected populator: PopulatorHandler<TModel, TModelMeta>;    
+    protected relationshipHandler: RelationshipHandler<TModel, TModelMeta>;    
 
     /** *protected*  
      * utilitarios para el controller
@@ -163,7 +164,7 @@ export abstract class Fb_Controller<TModel,TIModel, TModelMeta>{
                  * ya que tiene que haberse inicializado 
                  * la propiedad this.populator
                 */
-                this.populator.updateModelMetada(this.modelMeta);    
+                this.relationshipHandler.updateModelMetada(this.modelMeta);    
             }          
             return;
         })
@@ -435,42 +436,26 @@ export abstract class Fb_Controller<TModel,TIModel, TModelMeta>{
      * tengan referencias a una coleccion en concreto
      * 
      * *Param:*  
-     * `_id_Ref` el _id referencial a consultar
+     * `_docOrigin` se recibe un extracto de objeto con 
+     * con las propiedades referenciales o el objeto origen
+     * para consultar.  
      * `nomField_Ref` el nombre del campo que contiene 
-     * las referencias _id
+     * las referencias (_id o _pathDoc o incluso el objeto clon)
      * ____
      */
     public getDocsByRefence(
-        _id_Ref:string,
-        nomField_Ref:string
+        _docOrigin:any,
+        nomRefField:string
     ):Promise<TModel | TModel[]>{
         
         //metadata a usar
         const mMeta = <ModelMetadata><unknown>this.modelMeta || this.modelMeta_Offline;
-        const fMeta = <IFieldMeta<unknown, any>><unknown>mMeta[nomField_Ref];
-
-        /*garantizar que el campo existe y que es de tipo 
-        referencia valida */
-        if (!fMeta.fieldType || fMeta.fieldType == null ||
-            !fMeta.structureFConfig || fMeta.structureFConfig == null ||
-            
-            //determinar los tipos de campo que son referenciales
-            (fMeta.fieldType != EFieldType.foreignKey && 
-                fMeta.fieldType != EFieldType.foreignClone) 
-        ) {
-            if (!fMeta.fieldType || fMeta.fieldType == null) {
-                throw new Error("en los metadatos este campo no tiene asignado un tipo"); 
-            }
-            if (!fMeta.structureFConfig || fMeta.structureFConfig == null) {
-                throw new Error("en los metadatos este campo no tiene configuracion de estructura"); 
-            }            
-            throw new Error("en los metadatos este campo no es de tipo referencia valida (foreignKey o foreignClone)");
-        }
+        const fMeta = <IFieldMeta<unknown, any>><unknown>mMeta[nomRefField];
 
         /**configuracion de filtro obligatoria para 
          * esta Query*/
         let filter = this.getDefFilterInstance();
-        filter.isCollectionGroup = false;
+        filter.isCollectionGroup = false; //--falta analisis
 
         //configuracion comun para el hookParams
         let hookParams = this.getDefHookParamsInstance();
@@ -485,16 +470,40 @@ export abstract class Fb_Controller<TModel,TIModel, TModelMeta>{
         
         /**Determinar tipo de coleccion (normal o group) */
         cursorQuery = this.configTypeCollectionQuery(cursorQuery, filter);
+              
+        /**selecciona el campo de busqueda de acuerdo a al configuracion */
 
+        let _refQ:string;
+        let nomPath:string;
+
+        if (fMeta.structureFConfig.typeRef == "_pathDoc") {
+            _refQ =  _docOrigin["_pathDoc"];
+            nomPath = this.UtilCtrl.getPathField(this.modelMeta, nomRefField);
+            
         /**Configurar el cursorQuery dependiendo de la carnidalidad 
          * del campo referencia (sencillo si es (0a1,1a1) array 
-         * si es (0aMuchos, 1aMuchos)) dada por la propiedad default */                
-        if (fMeta.structureFConfig.cardinality == "one") {
-            cursorQuery = cursorQuery.where(nomField_Ref, "==", _id_Ref);
+         * si es (0aMuchos, 1aMuchos)) dada por la propiedad default */  
+            if (fMeta.structureFConfig.cardinality == "one") {            
+                cursorQuery = cursorQuery.where(nomPath, "==", _refQ);
+            }
+            if (fMeta.structureFConfig.cardinality == "many") {//solo para referencias no para objetos
+                cursorQuery = cursorQuery.where(nomPath, "array-contains", _refQ);
+            }
         }
-        if (fMeta.structureFConfig.cardinality == "many") {
-            cursorQuery = cursorQuery.where(nomField_Ref, "array-contains", _id_Ref);
-        }
+
+        if (fMeta.structureFConfig.typeRef == "_docClone"){
+            _refQ = _docOrigin["_pathDoc"]; //---falta analisis
+            const prefix_id = this.UtilCtrl.get_idWithout_pathDoc(_refQ);
+            
+            if (fMeta.structureFConfig.cardinality == "one") {
+                nomPath = this.UtilCtrl.getPathField(this.modelMeta, nomRefField, "", "_pathDoc");
+            }
+            if (fMeta.structureFConfig.cardinality == "many") {
+                nomPath = this.UtilCtrl.getPathField(this.modelMeta, nomRefField, prefix_id, "_pathDoc");                
+            }
+    
+            cursorQuery = cursorQuery.where(nomPath, "==", _refQ);
+        }      
 
         //ejecutar la consulta en comun
         return Promise.resolve()
@@ -548,6 +557,8 @@ export abstract class Fb_Controller<TModel,TIModel, TModelMeta>{
             const Ft = this.modelFormatter
             return Ft.formatDocWithPromise(newDoc, this.modelMeta, _pathBase, ext_id, false);
         })
+        //poblar _docClone (si existen) para ser almacenados en la BD
+        .then(()=>this.relationshipHandler.populateDocClone(newDoc, hookParams, _pathBase))           
         //ejecutar preHook
         .then((nDoc)=>this.modelHookHandler.preCreate(nDoc, this.modelMeta, hookParams))
         //ejecutar creacion (documento ya Validado y Formateado)
@@ -592,11 +603,13 @@ export abstract class Fb_Controller<TModel,TIModel, TModelMeta>{
         return Promise.resolve() //inicio de cadena de promesas (solo para comodidad de desmontar promesas qu eno hagan falta) 
         //actualizar la metadata
         .then(() => this.updateModelMetada())
-        //formatear el documento a crear
+        //formatear el documento a actualizar
         .then(() => {
             const Ft = <Formatter><unknown>this.modelFormatter
             return Ft.formatDocWithPromise(updatedDoc, this.modelMeta, _pathBase, null, isStrongUpdate);
-        })        
+        })
+        //poblar _docClone (si existen) para ser almacenados en la BD
+        .then(()=>this.relationshipHandler.populateDocClone(updatedDoc, hookParams, _pathBase))        
         //ejecutar preHook
         .then(()=>this.modelHookHandler.preUpdate(updatedDoc, this.modelMeta, hookParams))
         //ejecutar la actualizacion
@@ -611,6 +624,8 @@ export abstract class Fb_Controller<TModel,TIModel, TModelMeta>{
             .doc(updatedDoc["_id"])
             .update(updatedDoc);
         })
+        //ejecutar integridad de datos
+        .then(()=>this.relationshipHandler.modifyReference("update", updatedDoc, _pathBase))        
         //ejecutar postHook
         .then(()=>this.modelHookHandler.postUpdate(updatedDoc, hookParams))
     }
@@ -622,7 +637,9 @@ export abstract class Fb_Controller<TModel,TIModel, TModelMeta>{
      * alistamiento de la BD Firestore
      * 
      * *Param:*  
-     * `_id` : el _id del documento a eliminar en Firestore.  
+     * `deletedDoc` : el documento a eliminar de la base 
+     * de datos, se usa el documento completo y no su _id
+     *  con el fin de aprovechar los hooks internos.   
      * `hookParams` : Parametros para los metodos hooks 
      * (pre y post) a la ejecucion de la modificacion.  
      * `_pathBase` : ruta inicial para acceder a las subcolecciones
@@ -630,7 +647,7 @@ export abstract class Fb_Controller<TModel,TIModel, TModelMeta>{
      * ____
      */
     public delete(
-        _id:string, 
+        deletedDoc:TModel, 
         hookParams:IHookParams, 
         _pathBase:string, 
     ){
@@ -638,21 +655,24 @@ export abstract class Fb_Controller<TModel,TIModel, TModelMeta>{
         //actualizar la metadata
         .then(() => this.updateModelMetada())
         //ejecutar preHook
-        .then(()=>this.modelHookHandler.preDelete(_id, this.modelMeta, hookParams))            
+        .then(()=>this.modelHookHandler.preDelete(deletedDoc, this.modelMeta, hookParams))            
         //ejecutar la actualizacion
         .then(() => {
 
             //extraer part de modelo meta
             const mMeta = <ModelMetadata><unknown>this.modelMeta;
             const collectionPath = this.UtilCtrl.getPathCollection(mMeta, _pathBase);
+            const _id = deletedDoc["_id"]
 
             return this.FB.app_FS
                 .collection(collectionPath)
                 .doc(_id)
                 .delete();
         })
+        //ejecutar integridad de datos
+        .then(()=>this.relationshipHandler.modifyReference("remove", deletedDoc, _pathBase))
         //ejecutar postHook
-        .then(()=>this.modelHookHandler.postDelete(_id, hookParams))        
+        .then(()=>this.modelHookHandler.postDelete(deletedDoc, hookParams))        
     }    
 
     //================================================================
@@ -704,7 +724,7 @@ export abstract class Fb_Controller<TModel,TIModel, TModelMeta>{
      * *fk_* y *emb_*
      * ____
      */
-    public abstract getModelPopulator():PopulatorHandler<TModel, TModelMeta>;    
+    public abstract getModelPopulator():RelationshipHandler<TModel, TModelMeta>;    
 
     /** 
      * *public abstract*  

@@ -189,14 +189,14 @@ export class UsuarioHookHandler extends HookHandler<Usuario, UsuarioMeta>{
      * ____
      */
     public preDelete(
-        _id: string, 
+        deletedDoc: Usuario, 
         modelMeta:UsuarioMeta, 
         hookParams: IUsuarioHookParams
-    ): Promise<string> {
-        return super.preDelete(_id, modelMeta, hookParams)
-        .then((_id)=>{
+    ): Promise<Usuario> {
+        return super.preDelete(deletedDoc, modelMeta, hookParams)
+        .then((doc)=>{
             //....aqui la personalizacion del hook
-            return _id;
+            return doc;
         });
     }
 
@@ -206,10 +206,10 @@ export class UsuarioHookHandler extends HookHandler<Usuario, UsuarioMeta>{
      * ____
      */
     public postDelete(
-        _id: string, 
+        deletedDoc: Usuario, 
         hookParams: IUsuarioHookParams
     ): Promise<void> {
-        return super.postDelete(_id, hookParams)
+        return super.postDelete(deletedDoc, hookParams)
         .then(()=>{
             //....aqui la personalizacion del hook
             return;

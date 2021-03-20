@@ -8,7 +8,8 @@ import { UsuarioFormatter } from "./usuario-formatter";
 import { UsuarioHookHandler, IUsuarioHookParams } from "./usuario-hook-handler";
 import { UsuarioFilterHandlerCtrl, IUsuarioFilter, IUsuarioPopulationFilter } from "./usuario-filter-handler";
 import { Fb_Paginator } from "../fb-paginator";
-import { UsuarioPopulator } from "./usuario-populator-handler";
+import { UsuarioRelationshipHandler } from "./usuario-relationship-handler";
+import { UsuarioValidator } from "./usuario-validator";
 
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
 /** @info <hr>  
@@ -38,11 +39,13 @@ export class UsuarioController extends Fb_Controller<Usuario, IUsuario<any>, Usu
         this.modelMeta_Offline = new UsuarioMeta();
         this.updateModelMetada().catch((error)=>{ console.log(error)});
         
+        this.modelValidator = new UsuarioValidator(this.modelMeta);
+        this.modelValidator.validateModelMetada();
+
         this.paginator = new Fb_Paginator("AccumulativeStrong");
-        this.populator = new UsuarioPopulator(this.modelMeta_Offline, 
+        this.relationshipHandler = new UsuarioRelationshipHandler(this.modelMeta_Offline, 
                                 new Fb_Paginator("AccumulativeSimple"));
         this.modelFormatter = new UsuarioFormatter();
-        //this.modelValidator = new UsuarioValidator();
 
         this.modelFilterHandler = new UsuarioFilterHandlerCtrl();
         this.modelHookHandler = new UsuarioHookHandler();
@@ -153,7 +156,7 @@ export class UsuarioController extends Fb_Controller<Usuario, IUsuario<any>, Usu
      * ____
      */ 
     public delete(
-        _id:string, 
+        deletedDoc:Usuario, 
         hookParams:IUsuarioHookParams,
         _pathBase="", 
     ){
@@ -161,7 +164,7 @@ export class UsuarioController extends Fb_Controller<Usuario, IUsuario<any>, Usu
         hookParams = (hookParams && hookParams != null) ? 
                      hookParams : this.getDefHookParamsInstance();
 
-        return super.delete(_id, hookParams, _pathBase);
+        return super.delete(deletedDoc, hookParams, _pathBase);
     }
 
     //================================================================
@@ -180,17 +183,17 @@ export class UsuarioController extends Fb_Controller<Usuario, IUsuario<any>, Usu
      * *public*  
      * ____
      */
-    // public getModelValidator():UsuarioValidator{
-    //     const r = <UsuarioValidator>this.modelValidator;
-    //     return r
-    // }     
+    public getModelValidator():UsuarioValidator{
+        const r = <UsuarioValidator>this.modelValidator;
+        return r
+    }     
 
     /** @override <hr>  
      * *public*  
      * ____
      */
-    public getModelPopulator():UsuarioPopulator{
-        const r = <UsuarioPopulator>this.populator;
+    public getModelPopulator():UsuarioRelationshipHandler{
+        const r = <UsuarioRelationshipHandler>this.relationshipHandler;
         return r
     }    
     

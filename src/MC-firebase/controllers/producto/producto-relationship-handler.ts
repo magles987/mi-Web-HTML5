@@ -1,9 +1,9 @@
-import { PopulatorHandler } from "../populator-handler";
+import { RelationshipHandler } from "../relationship-handler";
 import { Producto } from "../../models/producto/producto-m";
 import { IFieldMeta, EFieldType } from "../meta";
 import { Fb_Paginator } from "../fb-paginator";
 import { ProductoMeta } from "./producto-meta";
-
+import { Fb_Controller } from "../fb-controller";
 
 //--para borrar (redundancia solo para pruebas)
 import { ProductoController } from "./producto-ctrl";
@@ -17,7 +17,7 @@ import { ProductoController } from "./producto-ctrl";
  * ``  
  * ____
  */
-export class ProductoPopulator extends PopulatorHandler<Producto, ProductoMeta> {
+export class ProductoRelationshipHandler extends RelationshipHandler<Producto, ProductoMeta> {
 
     /** 
      * `constructor()`  
@@ -34,9 +34,6 @@ export class ProductoPopulator extends PopulatorHandler<Producto, ProductoMeta> 
         super();
         this.modelMeta = modelMeta;
         this.populatePaginator = populatePaginator;
-
-        this.initInputCtrls();
-        this.initOutputCtrls();
     }
 
     /** @override<hr>  
@@ -44,17 +41,18 @@ export class ProductoPopulator extends PopulatorHandler<Producto, ProductoMeta> 
      * ....
      * ____
      */
-    protected initInputCtrls():void{
+    protected getInputCtrls(){
         /*inicializa el map de forma directa por 
         medio del constructor*/
-        this.inputCtrlsByField = new Map([
+        const ctrls = new Map([
             //asignar en pares [nom, getCtrl]
             [
-                this.modelMeta.fk_PruebaProd.nom,
-                ()=>ProductoController.getInstance(), 
+                this.modelMeta.__nomModel,
+                ()=>ProductoController.getInstance(),  //recursivo a si mismo
             ]
-        ]);
-        return;
+        ]) 
+        return ctrls as unknown as Map<string, ()=>Fb_Controller<any,any,any>>
+
     }
 
     /** @override<hr>  
@@ -62,38 +60,16 @@ export class ProductoPopulator extends PopulatorHandler<Producto, ProductoMeta> 
      * ....
      * ____
      */
-    protected initOutputCtrls():void{
+    protected getOutputCtrls(){
         /*inicializa el contenedor array de forma directa*/
-        this.outputCtrls = [
+        const ctrls = [
             //Aqui cada get Ctrl que tenga referencia 
             //de este model
-            ()=>ProductoController.getInstance(),
+            ()=>ProductoController.getInstance(), //recursivo a si mismo
         ]; 
-        return;
+        return ctrls as unknown as [()=>Fb_Controller<unknown,unknown,unknown>];
     }
 
-    /** 
-     * *public*  
-     * descrip...
-     * ____
-     */
-    public populateDoc(doc:Producto, nomFields?:string[]):Producto{
-        for (const key in this.modelMeta) {
 
-            let metaField = <IFieldMeta<unknown, any>><unknown>this.modelMeta[key];
-
-            if (nomFields && Array.isArray(nomFields)) {
-                const element = this.modelMeta[key];
-                
-            }else{
-                
-                if (metaField.fieldType == EFieldType.foreignKey) {
-                    
-                }
-            }
-        }
-        // this.modelMeta._id.
-        return doc;
-    }
 
 }

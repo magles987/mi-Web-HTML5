@@ -1,8 +1,8 @@
 import { v4 } from "uuid";
 import { ModelMetadata, IFieldMeta, EFieldType, ETypeCollection } from "./meta";
 //████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████
-/** @info <hr>  
- * *class* 
+/** 
+ * *class Singleton*  
  * Utlidades generales para usar en los *controllers* 
  * para Firestore
  * 
@@ -65,6 +65,123 @@ export class UtilControllers {
 
     /** 
      * *public*  
+     * retorna el nombre completo del campo que será usado 
+     * para construir la query, esto se debe a que si el campo 
+     * pertenece a alguna estructura, cada nivel debera ser 
+     * separado por un "."  
+     * ejemplo:  
+     * para la estructura:
+     * ````
+     * {
+     * campo1:{
+     *      campo2:{
+     *          campoN:{}
+     *      }
+     *  }
+     * }
+     * ````
+     * el path para consultar por `campoN` debe ser:
+     * ````
+     * let nomfieldPath = "campo1.campo2.campoN"
+     * ````
+     * 
+     * *Param:*  
+     * `modelMeta` : la metadata del modelo para 
+     * usar como referencia. **DEBE** ser el modelo 
+     * de Metadatos y no subMetadatos de campos 
+     * tipo estructura.  
+     * `nomFToSearch` : el nombre del campo a buscar.  
+     * `prefix_id` : si se requiere agregar un prefijo 
+     * de subCampo ( `nomCampo.[prefix_id].subcampo` ) 
+     * (de uso obligatorio para los _docClone referenciales 
+     * que usen array aplanado).  
+     * `nomSubFToSearch`
+     * ____
+     */
+    public getPathField(
+        modelMeta:unknown, 
+        nomFToSearch:string,
+        prefix_id:string="",
+        nomSubFToSearch=""
+    ):string{
+        if (!nomFToSearch || nomFToSearch == null) {
+            throw new Error("NO se puede buscar un campo sin nombre");            
+        }
+        
+        let pt = this.builderPathFieldRecursive(nomFToSearch, (<ModelMetadata>modelMeta), "");
+        
+        if (!pt || pt == null || pt == "") {
+            throw new Error("NO se encontro campo o subcampo con ese nombre en esta coleccion");        
+        }
+
+        /**organizar de acuerdo a _docClone si es requerido */
+        prefix_id = (prefix_id || prefix_id != null)? prefix_id : "";
+        nomSubFToSearch = (nomSubFToSearch || nomSubFToSearch != null)? nomSubFToSearch : "";
+        if (prefix_id != "" ) {
+            pt = `${pt}.${prefix_id}`;
+        }
+        if (nomSubFToSearch != "") {
+            pt = `${pt}.${nomSubFToSearch}`;
+        }        
+
+        return pt;
+    }   
+
+    /** 
+     * *private*  
+     * permite realizar la busqueda del campo dentro de 
+     * toda la metadata de manera recursiva
+     * *Param:*  
+     * `nomToSearc` : nombre del campo a buscar.  
+     * `modelMeta` : la metadata del modelo relativo a la 
+     * busqueda actual (sea campo o subcampo).  
+     * `recursiveNomPath` : ruta acumulada con cada ciclo 
+     * de busqueda.  
+     * ____
+     */
+    private builderPathFieldRecursive(
+        nomFToSearch:string,
+        modelMeta:ModelMetadata,
+        recursiveNomPath:string,
+    ){
+
+        for (const nomF in modelMeta) {
+            const fMeta = <IFieldMeta<unknown, ModelMetadata>><unknown>modelMeta[nomF];
+            /**determinar si lo encontro */
+            if ((fMeta.nom && fMeta.nom != null) &&
+                (fMeta.nom === nomFToSearch)
+            ) {
+                //selecciona de  acuerdo al nivel actual (campo o subcampo)
+                if (recursiveNomPath && recursiveNomPath != "") {
+                    return `${recursiveNomPath}.${fMeta.nom}`;
+                } else {
+                    return `${fMeta.nom}`;
+                }                
+            }
+
+            /**determinar si contiene una estructura con subcampos para buscar ahi */
+            if (//solo objetos o clones externos de objetos
+                (fMeta.fieldType == EFieldType.objectOrMap || 
+                 (fMeta.fieldType == EFieldType.foreign && 
+                    fMeta.structureFConfig.typeRef == "_docClone")) && 
+                //Firestore NO me permite consultar subcampos en un array
+                (fMeta.isArray == false) &&
+                (fMeta.structureFConfig && fMeta.structureFConfig != null) &&
+                (fMeta.structureFConfig.extModelMeta && fMeta.structureFConfig.extModelMeta != null) 
+            ) {
+                const ext_mMeta = fMeta.structureFConfig.extModelMeta;
+                const pathNom_buff = this.builderPathFieldRecursive(nomFToSearch, ext_mMeta, `${nomF}`);
+                if (pathNom_buff != "") {
+                    return pathNom_buff
+                }
+            }
+        }
+
+        return  "";
+    }
+    
+    /** 
+     * *public*  
      * obtener el path de la coleccion o subcoleccion, en las 
      * colecciones devuelve el mismo nom ya que son Raiz
      * 
@@ -83,11 +200,11 @@ export class UtilControllers {
         }
 
         //cast obligado:
-        const col_Meta = <ModelMetadata>modelMeta;
+        const mMeta = <ModelMetadata>modelMeta;
 
-        const r = (col_Meta.__typeCollection == ETypeCollection.subCollection && pathBase != "") ?
-            `${pathBase}/${col_Meta.__nomColeccion}` :
-            `${col_Meta.__nomColeccion}`;
+        const r = (mMeta.__typeCollection == ETypeCollection.subCollection && pathBase != "") ?
+            `${pathBase}/${mMeta.__nomColeccion}` :
+            `${mMeta.__nomColeccion}`;
 
         return r;
 
@@ -104,22 +221,9 @@ export class UtilControllers {
      * ____
      */
     public get_pathDocWithout_id(_pathDoc:string):string{
-        //determinar si es un _pathDoc valido por medio de
-        //secciones de tipo  ruta/  id/ ....
-        const re_sectionPath = /[a-zA-Z0-9-_]+\//g;
-        if(re_sectionPath.test(_pathDoc) === false){
-          throw new Error(`${_pathDoc} no es un _pathDoc valido`);          
-        }
         
-        //eliminar el ultimo "/" si existe
-        let idxLast = _pathDoc.length -1;
-        if(_pathDoc.substring(idxLast) === "/"){
-          _pathDoc = _pathDoc.substring(0, idxLast);
-        }
-
-        //reordena el ultimo index de acuerdo al ultimo separador "/" 
-        idxLast = _pathDoc.lastIndexOf("/");
-        //retorna solo _pathDoc sin el ultimo _id
+        let idxLast = this.getIdxBaseOfPathDoc(_pathDoc);        
+        // idxLast = idxLast-1; //solo si no se quiere devolver el ultimo "/"
         const r = _pathDoc.substring(0, idxLast);
         return r;
 
@@ -136,25 +240,39 @@ export class UtilControllers {
      * ____
      */
     public get_idWithout_pathDoc(_pathDoc:string):string{
-        //determinar si es un _pathDoc valido por medio de
-        //secciones de tipo  ruta/  id/ ....
-        const re_sectionPath = /[a-zA-Z0-9-_]+\//g;
-        if(re_sectionPath.test(_pathDoc) === false){
-          throw new Error(`${_pathDoc} no es un _pathDoc valido`);          
-        }
-        
-        //eliminar el ultimo "/" si existe
-        const idxLast = _pathDoc.length -1;
-        if(_pathDoc.substring(idxLast) === "/"){
-          _pathDoc = _pathDoc.substring(0, idxLast);
-          
-        }
-
-        //retorna solo el ultimo _id de la ruta
-        const r = _pathDoc.replace(re_sectionPath, "");
+        let idxStart = this.getIdxBaseOfPathDoc(_pathDoc);        
+        const r = _pathDoc.substring(idxStart).replace(/\//g,""); //eliminar cualquier "/" que este de residuo
         return r;
     }    
 
+    /** 
+     * *private*  
+     * permite analizar el pathDoc y retornar el indice 
+     * de donde se separa la ruta del _id
+     * ____
+     */
+    private getIdxBaseOfPathDoc(
+        _pathDoc:string
+    ):number{
+        const _pathDocLength = _pathDoc.length;
+        /**referencia para conocer si el string es 
+         * candidato de ser un _pathDoc */
+        const re_sectionPath = new RegExp("[a-zA-Z0-9-_]+\/", "g"); //la bandera g es importante            
+        /**Recorre el string buscando uno a uno 
+         * las coincidencias y selecciona el ultimo 
+         * (o penultimo si la cadena termina en "/") 
+         * de las coincidencias*/
+        let idxLast:number;
+        do {
+            re_sectionPath.test(_pathDoc);
+            const it = re_sectionPath.lastIndex;
+            if (it > 0 && it < _pathDocLength) {
+                idxLast = it
+            }
+        } while (re_sectionPath.lastIndex > 0);
+        return idxLast;
+    }
+    
     /** 
      * *public*  
      * crea una instancia del modelo (tipo *class*) con 
@@ -190,23 +308,18 @@ export class UtilControllers {
                 }
 
                 /*tratamiento de referencial por _id o _pathDoc */
-                if (fieldMeta.fieldType == EFieldType.foreignKey) {
+                if (fieldMeta.fieldType == EFieldType.foreign) {
                     //----[falta analisis]---
                     Model[<string>key_MM] = fieldMeta.default || 
                                             //contingencia por si no existe default
-                                            (fieldMeta.isArray) ? [] : null;
+                                            (fieldMeta.isArray) ? 
+                                            [] : 
+                                            (fieldMeta.structureFConfig.typeRef == "_docClone") ?
+                                            {} : 
+                                            null;
                     continue;        
                 }              
-
-                /*tratamiento de clon de objeto por medio de referencia */
-                if (fieldMeta.fieldType == EFieldType.foreignClone) {
-                    //----[falta analisis]---
-                    Model[<string>key_MM] = fieldMeta.default || 
-                                            //contingencia por si no existe default
-                                            (fieldMeta.isArray) ? [] : {};
-                    continue;        
-                }                         
-
+                      
                 /*tratamiento de estructura simple */
                 if (fieldMeta.fieldType == EFieldType.objectOrMap) {
 
@@ -373,5 +486,6 @@ export class UtilControllers {
         }else{
             return ObjsArray;
         }
-    }    
+    }
+        
 }
